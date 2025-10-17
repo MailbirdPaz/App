@@ -39,6 +39,7 @@ public class Main extends Application {
             settingsStage.initModality(Modality.APPLICATION_MODAL);
             settingsStage.show();
         } else {
+            fxmlLoader.getController();
             Scene scene = new Scene(parent);
             stage.setScene(scene);
             stage.setTitle("MailBird");

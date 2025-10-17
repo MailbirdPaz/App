@@ -1,4 +1,7 @@
 package org.mailbird.Core.Entity;
 
-public record User(int id, String email, String nickname) {
+import lombok.With;
+
+@With
+public record User(int id, String email, String passwd, String host, String port) {
 }
