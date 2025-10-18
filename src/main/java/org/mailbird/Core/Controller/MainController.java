@@ -3,18 +3,25 @@ package org.mailbird.Core.Controller;
 
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
+import javafx.scene.Parent;
+import javafx.scene.control.*;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import org.mailbird.Adapter.POP3;
 import org.mailbird.Core.Entity.Mail;
 import org.mailbird.Main;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 public class MainController {
@@ -31,13 +38,18 @@ public class MainController {
     private Button button_settings;
 
     @FXML
+    private TextField input_search_mail;
+
+    @FXML
     void onSearchTextChange(ActionEvent event) {
 
     }
 
+    private List<Mail> mails; // just a list of loaded mails
+    private List<Mail> sortedMails; // a sorted / formatted list, for example, sorted by date, or by subject
     private POP3 mailService;
 
-    public void connect(String user, String password, String host) throws MessagingException {
+    public void connect(String user, String password, String host) throws MessagingException, IOException {
         Properties props = new Properties();
         props.put("mail.store.protocol", "pop3s");
         props.put("mail.pop3s.host", host);
@@ -50,12 +62,20 @@ public class MainController {
         Session session = this.mailService.NewSession(props);
         Store store = this.mailService.Connect(session, password, host, user);
 
-        Message[] messages = this.mailService.LoadMails(store, 5);
 
+        // OpenFolder method returns an array of Messages. We need to cast from []Messages to the ObservableList<Mail>
+        Message[] messages = this.mailService.OpenFolder(store, 5);
+        ObservableList<Mail> items = FXCollections.observableList(new ArrayList<Mail>());
         for (Message msg : messages) {
-            String from = ((InternetAddress) msg.getFrom()[0]).getAddress();
-            System.out.printf("[%s] %s%n", from, msg.getSubject());
+            items.addLast(new Mail(msg));
         }
+
+        this.mails = items;
+        this.sortedMails = items;
+        mail_list.setItems(items);
+
+        // Mails already read, close folder
+        this.mailService.CloseFolder();
     }
 
     @FXML
@@ -67,6 +87,35 @@ public class MainController {
                 Main.SwitchScene(stage, "settings.fxml", true);
             } catch (Exception e) {
                 System.out.println(e.getMessage());
+            }
+        });
+
+        this.input_search_mail.setOnAction(event -> {
+            System.out.println(((TextField)event.getSource()).getText());
+            // filter mail here. change only this.sortedMails. To discard all filters, just make this.sortedMails = this.mails. Разберешься там
+            // inbox.search()
+            // In future will try to search in the local first, if not found, then on server
+        });
+
+        this.mail_list.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Mail item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setGraphic(null);
+                } else {
+                    try {
+                        FXMLLoader loader = new FXMLLoader(Main.class.getResource("mail_item.fxml"));
+                        Parent cellRoot = loader.load();
+                        MailItemController controller = loader.getController();
+                        controller.setData(item);
+                        setGraphic(cellRoot);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (MessagingException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
             }
         });
     }

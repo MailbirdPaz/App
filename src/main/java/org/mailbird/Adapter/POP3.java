@@ -9,6 +9,8 @@ import java.util.Properties;
 
 // Using POP3 adapter assumes using SMTP.
 public class POP3 {
+    Folder folder;
+
     public POP3() {
 
     }
@@ -28,9 +30,10 @@ public class POP3 {
     }
 
     //    @Override
-    public Message[] LoadMails(Store store, int limit) throws MessagingException {
+    public Message[] OpenFolder(Store store, int limit) throws MessagingException {
         Folder inbox = store.getFolder("INBOX");
         inbox.open(Folder.READ_ONLY);
+        this.folder = inbox;
 
         Message[] messages;
 
@@ -60,6 +63,14 @@ public class POP3 {
         // inbox.close(false);
 
         return messages;
+    }
+
+    public void CloseFolder() {
+        if (folder != null) {
+            try {
+                folder.close(false);
+            } catch (MessagingException ex) {}
+        }
     }
 
 
