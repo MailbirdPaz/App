@@ -97,6 +97,9 @@ public class MainController {
             // In future will try to search in the local first, if not found, then on server
         });
 
+        // TODO: create function in 'input_search_mail' to pick elems
+
+
         this.mail_list.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(Mail item, boolean empty) {
