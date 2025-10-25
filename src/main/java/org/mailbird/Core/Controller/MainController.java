@@ -45,9 +45,42 @@ public class MainController {
 
     }
 
-    private List<Mail> mails; // just a list of loaded mails
-    private List<Mail> sortedMails; // a sorted / formatted list, for example, sorted by date, or by subject
+    private Button buttonLoadMoreMails = new Button("more...");
+    private ObservableList<Mail> displayedMails = FXCollections.observableArrayList();
     private POP3 mailService;
+    private Store store;
+    private int flushLoadMax = 10; // limit to load maximum 10 mails per loading
+
+
+    // loads 10 mails and add to the list
+    private ObservableList<Mail> LoadMoreMails() throws MessagingException, IOException {
+        // OpenFolder method returns an array of Messages. We need to cast from []Messages to the ObservableList<Mail>
+        // second argument = offset = how many mails to skip. Is used when some mails are already loaded
+        Message[] messages = this.mailService.LoadMails(this.store, this.displayedMails.size(), this.flushLoadMax);
+        ObservableList<Mail> items = FXCollections.observableList(new ArrayList<Mail>());
+        for (Message msg : messages) {
+            items.addLast(new Mail(msg));
+        }
+
+        return items;
+    }
+
+    // updates local arrays
+    public void updateMailsList(ObservableList<Mail> mails) {
+        if (mails == null) {
+            return;
+        }
+
+        System.out.println("Updating mails list");
+        for  (Mail mail : mails) {
+            System.out.println("Updating mail: " + mail.subject());
+        }
+
+        // add mails to the local arrays
+        this.displayedMails.addAll(mails);
+        // update visual list
+        mail_list.setItems(this.displayedMails);
+    }
 
     public void connect(String user, String password, String host) throws MessagingException, IOException {
         Properties props = new Properties();
@@ -61,18 +94,15 @@ public class MainController {
         this.mailService = ms;
         Session session = this.mailService.NewSession(props);
         Store store = this.mailService.Connect(session, password, host, user);
+        // save store
+        this.store = store;
+        this.mailService.OpenFolder(this.store); // open here
 
+        // load mails first time
+        ObservableList<Mail> mails = LoadMoreMails();
+        this.updateMailsList(mails);
+        // set loaded mails to the list
 
-        // OpenFolder method returns an array of Messages. We need to cast from []Messages to the ObservableList<Mail>
-        Message[] messages = this.mailService.OpenFolder(store, 5);
-        ObservableList<Mail> items = FXCollections.observableList(new ArrayList<Mail>());
-        for (Message msg : messages) {
-            items.addLast(new Mail(msg));
-        }
-
-        this.mails = items;
-        this.sortedMails = items;
-        mail_list.setItems(items);
 
         // Mails already read, close folder
         this.mailService.CloseFolder();
@@ -105,11 +135,21 @@ public class MainController {
                     setGraphic(null);
                 } else {
                     try {
-                        FXMLLoader loader = new FXMLLoader(Main.class.getResource("mail_item.fxml"));
-                        Parent cellRoot = loader.load();
-                        MailItemController controller = loader.getController();
-                        controller.setData(item);
-                        setGraphic(cellRoot);
+                        // add "update" button as a last element
+                        int index = getIndex();
+                        int lastIndex = mail_list.getItems().size() - 1;
+
+                        if (index == lastIndex) {
+                            // load more mails button
+                            setGraphic(buttonLoadMoreMails);
+                        } else {
+                            // default cell with mail
+                            FXMLLoader loader = new FXMLLoader(Main.class.getResource("mail_item.fxml"));
+                            Parent cellRoot = loader.load();
+                            MailItemController controller = loader.getController();
+                            controller.setData(item);
+                            setGraphic(cellRoot);
+                        }
                     } catch (IOException e) {
                         e.printStackTrace();
                     } catch (MessagingException e) {
@@ -117,6 +157,26 @@ public class MainController {
                     }
                 }
             }
+        });
+
+        buttonLoadMoreMails.setOnAction(e -> {
+            try {
+                this.mailService.OpenFolder(this.store);
+            } catch (MessagingException ex) {
+                System.err.println(ex.getMessage());
+            }
+
+            ObservableList<Mail> mailsToUpdate = null;
+
+            try {
+                mailsToUpdate = LoadMoreMails();
+            } catch (MessagingException | IOException ex) {
+                System.err.println(ex.getMessage());
+            } finally {
+                this.mailService.CloseFolder();
+            }
+
+            this.updateMailsList(mailsToUpdate);
         });
     }
 }

@@ -18,7 +18,7 @@ public class POP3 {
 //    @Override
     public Session NewSession(Properties props) throws NoSuchProviderException {
         Session session = Session.getInstance(props);
-        session.setDebug(true);
+        session.setDebug(false);
         return session;
     }
 
@@ -30,23 +30,25 @@ public class POP3 {
     }
 
     //    @Override
-    public Message[] OpenFolder(Store store, int limit) throws MessagingException {
+    public void OpenFolder(Store store) throws MessagingException {
         Folder inbox = store.getFolder("INBOX");
         inbox.open(Folder.READ_ONLY);
         this.folder = inbox;
+    }
 
+    public Message[] LoadMails(Store store, int offset, int limit) throws MessagingException {
         Message[] messages;
 
         Boolean onlyUnread = false;
         if (onlyUnread) {
             // Только непрочитанные письма
-            messages = inbox.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
+            messages = this.folder.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
         } else {
             // Все письма
-            int total = inbox.getMessageCount();
-            int start = Math.max(1, total - limit + 1); // индекс первого из последних N
-            int end = total;
-            messages = inbox.getMessages(start, end);
+            int total = this.folder.getMessageCount();
+            int end = total - offset;
+            int start = Math.max(1, end - limit + 1);
+            messages = this.folder.getMessages(start, end);
         }
 
         // Сортируем так, чтобы newest first
