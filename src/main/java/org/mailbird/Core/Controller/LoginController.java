@@ -1,21 +1,22 @@
 package org.mailbird.Core.Controller;
 
-import javafx.application.Platform;
+
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
-import org.mailbird.Adapter.POP3;
-import org.mailbird.Core.Port.IMail;
+
+import org.mailbird.Core.Services.AuthService;
+import org.mailbird.Core.util.Popup;
 import org.mailbird.Main;
 
-import java.io.IOException;
 import java.util.Properties;
 import java.util.ResourceBundle;
 
@@ -45,6 +46,12 @@ public class LoginController {
     @FXML
     private ProgressIndicator spinner;
 
+    private AuthService authService;
+
+    public void SetAuthService(AuthService authService) {
+        this.authService = authService;
+    }
+
     @FXML
     void initialize() {
         connect_button.setOnAction(event -> {
@@ -73,6 +80,17 @@ public class LoginController {
                 port_input.setStyle("-fx-border-color: red;");
                 return;
             }
+
+            boolean success = this.authService.LogInDefault(email_input.getText(), passwd_input.getText(), host_input.getText(), port_input.getText(), "imaps"); // imaps by default
+            if (!success) {
+                new Popup(
+                        Alert.AlertType.ERROR,
+                        "Login Failed",
+                        "Could not connect to the mail server. Please check your credentials and try again."
+                ).Show();
+                return;
+            }
+
             try {
                 // try to connect
                 // set info in the properties
@@ -90,7 +108,7 @@ public class LoginController {
 
                         // TODO: show spinner in the separate thread
                         MainController mainController = fxmlLoader.getController();
-                        mainController.connect(email_input.getText(), passwd_input.getText(), host_input.getText());
+                        mainController.connect(email_input.getText(), passwd_input.getText(), host_input.getText(), this.authService);
 
                         Scene scene = new Scene(parent);
                         stage.setScene(scene);

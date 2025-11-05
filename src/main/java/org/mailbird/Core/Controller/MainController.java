@@ -1,9 +1,6 @@
 package org.mailbird.Core.Controller;
 
-
 import jakarta.mail.*;
-import jakarta.mail.internet.InternetAddress;
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -15,13 +12,13 @@ import javafx.scene.control.*;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import org.mailbird.Adapter.POP3;
-import org.mailbird.Core.Entity.Mail;
+import org.mailbird.Core.Services.AuthService;
+import org.mailbird.Core.domain.model.Mail;
+import org.mailbird.Core.domain.model.User;
 import org.mailbird.Main;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Properties;
 
 public class MainController {
@@ -45,12 +42,12 @@ public class MainController {
 
     }
 
+    private AuthService authService;
     private Button buttonLoadMoreMails = new Button("more...");
     private ObservableList<Mail> displayedMails = FXCollections.observableArrayList();
     private POP3 mailService;
     private Store store;
     private int flushLoadMax = 10; // limit to load maximum 10 mails per loading
-
 
     // loads 10 mails and add to the list
     private ObservableList<Mail> LoadMoreMails() throws MessagingException, IOException {
@@ -59,7 +56,7 @@ public class MainController {
         Message[] messages = this.mailService.LoadMails(this.store, this.displayedMails.size(), this.flushLoadMax);
         ObservableList<Mail> items = FXCollections.observableList(new ArrayList<Mail>());
         for (Message msg : messages) {
-            items.addLast(new Mail(msg));
+            items.addLast(new Mail(msg, this.authService.getUser()));
         }
 
         return items;
@@ -82,18 +79,14 @@ public class MainController {
         mail_list.setItems(this.displayedMails);
     }
 
-    public void connect(String user, String password, String host) throws MessagingException, IOException {
-        Properties props = new Properties();
-        props.put("mail.store.protocol", "pop3s");
-        props.put("mail.pop3s.host", host);
-        props.put("mail.pop3s.port", "995"); // 995
-        props.put("mail.pop3s.ssl.enable", "true");
+    public void connect(String password, String host, String email, AuthService s) throws MessagingException, IOException {
+        this.authService = s;
 
         System.out.println("Trying to connect to mail service");
         POP3 ms =  new POP3();
         this.mailService = ms;
-        Session session = this.mailService.NewSession(props);
-        Store store = this.mailService.Connect(session, password, host, user);
+        Session session = this.mailService.NewSession(authService.getCredentials().AsProperties());
+        Store store = this.mailService.Connect(session, authService.getCredentials());
         // save store
         this.store = store;
         this.mailService.OpenFolder(this.store); // open here
