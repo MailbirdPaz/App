@@ -4,6 +4,7 @@ import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.search.FlagTerm;
 import org.mailbird.Core.Port.IMail;
+import org.mailbird.Core.util.Credentials;
 
 import java.util.Properties;
 
@@ -22,10 +23,10 @@ public class POP3 {
         return session;
     }
 
-    public Store Connect(Session session, String password, String host, String user) throws MessagingException {
-        Store store = session.getStore("imaps");
-        store.connect(host, user, password);
-        System.out.println("✅ Connected to " + "imaps" + " at " + host);
+    public Store Connect(Session session, Credentials c) throws MessagingException {
+        Store store = session.getStore("imaps"); // by default
+        store.connect(c.host(), c.user(), c.password());
+        System.out.println("✅ Connected to " + "imaps" + " at " + c.host());
         return store;
     }
 
