@@ -9,6 +9,8 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.TextFlow?>
+<?import javafx.scene.web.WebView?>
+
 
 <HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="1100.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mailbird.Core.Controller.MainController">
    <children>
@@ -30,24 +32,29 @@
          <children>
             <VBox prefHeight="680.0" prefWidth="300.0">
                <children>
-                  <TextField fx:id="input_search_mail" onAction="#onSearchTextChange" prefHeight="25.0" prefWidth="200.0" promptText="Search" />
+                  <TextField fx:id="input_search_mail" prefHeight="25.0" prefWidth="200.0" promptText="Search"/>
                   <ListView fx:id="mail_list" prefHeight="654.0" prefWidth="291.0" VBox.vgrow="ALWAYS" />
                </children>
             </VBox>
             <VBox prefHeight="200.0" prefWidth="100.0" HBox.hgrow="ALWAYS">
                <children>
-                  <VBox prefHeight="25.0" prefWidth="330.0">
+                  <VBox VBox.vgrow="ALWAYS">
                      <children>
-                        <Label fx:id="mail_title" contentDisplay="CENTER" prefHeight="24.0" prefWidth="330.0" text="Mail title" textAlignment="CENTER" VBox.vgrow="ALWAYS">
-                           <font>
-                              <Font size="18.0" />
-                           </font>
+                        <!-- НЕ растим заголовок -->
+                        <Label fx:id="mail_title"
+                               contentDisplay="CENTER"
+                               prefHeight="24.0" prefWidth="330.0"
+                               text="Mail title" textAlignment="CENTER">
+                           <font><Font size="18.0"/></font>
                         </Label>
+
+                        <!-- А вот WebView растим на всё оставшееся -->
+                        <WebView fx:id="webviewMail" VBox.vgrow="ALWAYS"/>
                      </children>
                   </VBox>
-                  <TextFlow fx:id="mail_body" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS" />
                </children>
             </VBox>
+
          </children>
       </HBox>
    </children>
