@@ -8,6 +8,7 @@ import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 
+import jakarta.mail.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -25,7 +26,9 @@ import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 
 import org.mailbird.Adapter.POP3;
-import org.mailbird.Core.Entity.Mail;
+import org.mailbird.Core.Services.AuthService;
+import org.mailbird.Core.domain.model.Mail;
+import org.mailbird.Core.domain.model.User;
 import org.mailbird.Main;
 
 import java.io.IOException;
@@ -42,9 +45,8 @@ import java.util.regex.Pattern;
 
 public class MainController {
 
-    // ---------- FXML-поля ----------
     @FXML
-    private ListView<Mail> mail_list;   // ОСТАВИТЬ один раз
+    private ListView<Mail> mail_list;   
 
     @FXML
     private Label mail_title;
@@ -55,24 +57,31 @@ public class MainController {
     @FXML
     private TextField input_search_mail;
 
-
-    // Рендер письма
     @FXML
     private WebView webviewMail;
     private WebEngine web;
 
-    // ---------- Сервис/состояние ----------
     private final Button buttonLoadMoreMails = new Button("more...");
     private final ObservableList<Mail> displayedMails = FXCollections.observableArrayList();
     private POP3 mailService;
     private Store store;
-    private final int flushLoadMax = 10; // грузим до 10 писем за раз
+    private final int flushLoadMax = 10; // load maximum 10 mails at once
 
-    // ---------- Логика загрузки ----------
+    private AuthService authService;
+    private Button buttonLoadMoreMails = new Button("more...");
+    private ObservableList<Mail> displayedMails = FXCollections.observableArrayList();
+    private POP3 mailService;
+    private Store store;
+    private int flushLoadMax = 10; // limit to load maximum 10 mails per loading
+
+    // loads 10 mails and add to the list
     private ObservableList<Mail> LoadMoreMails() throws MessagingException, IOException {
         Message[] messages = this.mailService.LoadMails(this.store, this.displayedMails.size(), this.flushLoadMax);
-        ObservableList<Mail> items = FXCollections.observableList(new ArrayList<>());
-        for (Message msg : messages) items.addLast(new Mail(msg));
+        ObservableList<Mail> items = FXCollections.observableList(new ArrayList<Mail>());
+        for (Message msg : messages) {
+            items.addLast(new Mail(msg, this.authService.getUser()));
+        }
+
         return items;
     }
 
@@ -82,17 +91,14 @@ public class MainController {
         mail_list.setItems(this.displayedMails);
     }
 
-    public void connect(String user, String password, String host) throws MessagingException, IOException {
-        Properties props = new Properties();
-        props.put("mail.store.protocol", "pop3s");
-        props.put("mail.pop3s.host", host);
-        props.put("mail.pop3s.port", "995");
-        props.put("mail.pop3s.ssl.enable", "true");
+    public void connect(String password, String host, String email, AuthService s) throws MessagingException, IOException {
+        this.authService = s;
 
         POP3 ms = new POP3();
         this.mailService = ms;
-        Session session = this.mailService.NewSession(props);
-        Store store = this.mailService.Connect(session, password, host, user);
+        Session session = this.mailService.NewSession(authService.getCredentials().AsProperties());
+        Store store = this.mailService.Connect(session, authService.getCredentials());
+        // save store
         this.store = store;
         this.mailService.OpenFolder(this.store);
 
@@ -102,14 +108,12 @@ public class MainController {
         this.mailService.CloseFolder();
     }
 
-    // ---------- Инициализация UI ----------
     @FXML
     void initialize() {
-        // WebView для письма
         web = webviewMail.getEngine();
-        web.setJavaScriptEnabled(false); // для писем безопаснее
+        web.setJavaScriptEnabled(false); // secure
 
-        // Клик по письму -> показать тело
+        // click on the mail -> show content
         mail_list.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
             if (newV != null) showMail(newV);
         });
@@ -119,7 +123,7 @@ public class MainController {
         });
 
 
-        // Кнопка настроек
+        // Settings button
         button_settings.setOnAction(event -> {
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             try {
@@ -129,12 +133,11 @@ public class MainController {
             }
         });
 
-        // Поиск (пока только выводит текст)
+        // search
         this.input_search_mail.setOnAction(event -> {
             System.out.println(((TextField) event.getSource()).getText());
         });
 
-        // Кастомные ячейки списка (последняя — кнопка "more...")
         this.mail_list.setCellFactory(lv -> new ListCell<>() {
             @Override
             protected void updateItem(Mail item, boolean empty) {
@@ -162,7 +165,7 @@ public class MainController {
             }
         });
 
-        // Обработчик "more..."
+        // button "more..."
         buttonLoadMoreMails.setOnAction(e -> {
             try {
                 this.mailService.OpenFolder(this.store);
@@ -176,13 +179,13 @@ public class MainController {
         });
     }
 
-    // ---------- Рендер письма (HTML как прислали, со стилями отправителя) ----------
+    // mail content render
     private void showMail(Mail mail) {
-        // показываем тему сразу
+        // show theme
         mail_title.setText(mail.subject() == null ? "(без темы)" : mail.subject());
 
         try {
-            // Пытаемся рендерить локальное тело (если оно уже полностью в памяти)
+            // try to render body
             try {
                 Object body = mail.body();
                 if (body instanceof String || body instanceof Multipart) {
@@ -199,7 +202,7 @@ public class MainController {
             // Гарантированный путь: открыть INBOX, взять Message и отрендерить ПРЯМО СЕЙЧАС
             String html = fetchAndRenderHtml(mail.id());
             if (html == null) {
-                html = "<!doctype html><html><body><i>(Письмо без содержимого)</i></body></html>";
+                html = "<!doctype html><html><body><i>(Empty mail)</i></body></html>";
             }
             web.loadContent(html, "text/html");
 
@@ -253,7 +256,7 @@ public class MainController {
 
 
     private String renderBody(Object body) throws Exception {
-        if (body == null) return "<!doctype html><html><body><i>(Пустое письмо)</i></body></html>";
+        if (body == null) return "<!doctype html><html><body><i>(Empty mail)</i></body></html>";
 
         if (body instanceof String s) {
             String t = s.trim();

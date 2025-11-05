@@ -3,10 +3,9 @@ package org.mailbird.Core.Controller;
 import jakarta.mail.MessagingException;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
-import org.mailbird.Core.Entity.Mail;
+import org.mailbird.Core.domain.model.Mail;
 
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 public class MailItemController {

@@ -1,4 +1,4 @@
-package org.mailbird.Core.Entity;
+package org.mailbird.Core.domain.model;
 
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
@@ -8,14 +8,18 @@ import java.io.IOException;
 import java.util.Date;
 
 public record Mail(int id, User from, User to, Date date, String subject, Object body) {
-    public Mail(Message message) throws MessagingException, IOException {
+    public Mail(Message message, User me) throws MessagingException, IOException {
         this(
                 message.getMessageNumber(),
-                new User(0,
+                new User(0L,
                         ((InternetAddress) message.getFrom()[0]).getAddress(),
-                        ((InternetAddress) message.getFrom()[0]).getPersonal()
+                        ((InternetAddress) message.getFrom()[0]).getPersonal(),
+                        "Surname",
+                        "",
+                        "",
+                        ""
                 ),
-                new User(1, "me", "me"),
+                me,
                 message.getSentDate(),
                 message.getSubject(),
                 message.getContent()
