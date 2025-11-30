@@ -1,10 +1,10 @@
 package org.mailbird.Core.Services;
 
+import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import lombok.Getter;
 import lombok.Setter;
-import org.mailbird.Adapter.POP3;
 import org.mailbird.Core.DAO.UserDao;
 import org.mailbird.Core.domain.entity.UserEntity;
 import org.mailbird.Core.domain.model.User;
@@ -17,6 +17,7 @@ public class AuthService {
     private User user;
     @Getter
     private Credentials credentials;
+    public Session session;
 
 
     public AuthService(UserDao userDao) {
@@ -25,25 +26,14 @@ public class AuthService {
 
     /// LogInDefault - log in by email and password. It finds / creates user in database and try to connect to the mail server
     /// @return true if success, false otherwise
-    public boolean LogInDefault(String email, String password, String host, String port, String protocol) {
+    public void SetUserCredentials(String email, String password, String host, String port, String protocol) {
         this.credentials = new Credentials(password, host, email, port, protocol);
-
-        System.out.println("Trying to connect to mail service");
-        try {
-            POP3 ms =  new POP3(); // mail service
-            Session session = ms.NewSession(this.credentials.AsProperties());
-            Store store = ms.Connect(session, this.credentials);
-            store.close();
-        } catch (Exception e) {
-            System.out.println("Failed to connect to mail service: " + e.getMessage());
-            return false;
-        }
 
         // first try to find user in database
         var res = this.userDao.GetByEmail(email);
         if (res.isPresent()) {
             this.user = new User(res.get());
-            return true;
+            return;
         }
 
         // create user
@@ -57,8 +47,8 @@ public class AuthService {
         this.userDao.Insert(newUser);
 
         this.user = new User(newUser);
-        return true;
     }
+
     private String extractNameFromEmail(String email) {
         if (email == null || !email.contains("@")) {
             return "User";

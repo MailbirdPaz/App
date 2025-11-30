@@ -7,8 +7,11 @@ import javafx.scene.Scene;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.mailbird.Core.Controller.LoginController;
+import org.mailbird.Core.DAO.MailDAO;
 import org.mailbird.Core.DAO.UserDao;
 import org.mailbird.Core.Services.AuthService;
+import org.mailbird.Core.Services.MailService;
+import org.mailbird.Core.domain.model.Mail;
 import org.mailbird.Core.util.Config;
 import org.mailbird.Core.util.Hibernate;
 
@@ -20,6 +23,7 @@ public class Main extends Application {
     private Hibernate hibernate;
     private Config config;
     private AuthService authService;
+    private MailService mailService;
 
     public static void main(String[] args) throws IOException {
         launch(args);
@@ -39,10 +43,14 @@ public class Main extends Application {
         // Auth service
         this.authService = new AuthService(userDao);
 
+        // Mail service - communication with mail server and database mail entity
+        this.mailService = new MailService(new MailDAO(this.hibernate.getSessionFactory()));
+
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("login.fxml"));
         Parent parent = fxmlLoader.load();
         LoginController loginController = fxmlLoader.getController();
         loginController.SetAuthService(this.authService);
+        loginController.SetMailService(this.mailService);
         Scene scene = new Scene(parent);
         stage.setScene(scene);
         stage.setTitle("MailBird");

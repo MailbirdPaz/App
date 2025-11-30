@@ -38,6 +38,7 @@ public class UserDao {
 
     public Optional<UserEntity> GetByEmail(String email) {
         try (Session session = this.sessionFactory.openSession()) {
+            System.out.println("Try to get user by email: " + email);
             return session.createQuery("FROM UserEntity WHERE email = :email", UserEntity.class)
                     .setParameter("email", email)
                     .uniqueResultOptional();

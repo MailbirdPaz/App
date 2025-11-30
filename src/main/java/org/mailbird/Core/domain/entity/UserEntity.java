@@ -1,33 +1,55 @@
 package org.mailbird.Core.domain.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.mailbird.Core.domain.model.User;
+
 import java.util.List;
 
 @Entity
 @Table(name = "users", schema = "public")
 public class UserEntity {
+    public UserEntity(User user) {
+        // TODO: map User model to UserEntity
+    }
+
+    // Getters & setters
+    @Getter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
+    @Getter
     @Column(nullable = false, length = 64)
     private String name;
 
+    @Setter
+    @Getter
     @Column(nullable = false, length = 64)
     private String surname;
 
+    @Setter
+    @Getter
     @Column(nullable = false, length = 128, unique = true)
     private String email;
 
+    @Setter
     @Column(nullable = false, length = 128)
     private String password;
 
+    @Setter
+    @Getter
     @Column(nullable = false, length = 16)
     private String protocol;
 
+    @Setter
+    @Getter
     @Column(length = 128)
     private String host;
 
+    @Getter
     @Column(length = 16)
     private String port;
 
@@ -43,22 +65,4 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "toUser")
     private List<MailEntity> receivedMails;
-
-    // Getters & setters
-    public Long getId() { return id; }
-    public String getName() { return name; }
-    public String getSurname() { return surname; }
-    public String getEmail() { return email; }
-    public String getPassword() { return password; }
-    public String getProtocol() { return protocol; }
-    public String getHost() { return host; }
-    public String getPort() { return port; }
-
-    public void setName(String name) { this.name = name; }
-    public void setSurname(String surname) { this.surname = surname; }
-    public void setEmail(String email) { this.email = email; }
-    public void setPassword(String password) { this.password = password; }
-    public void setProtocol(String protocol) { this.protocol = protocol; }
-    public void setHost(String host) { this.host = host; }
-    public void setPort(String port) { this.port = port; }
 }

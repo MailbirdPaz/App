@@ -1,43 +1,51 @@
-package org.mailbird.Adapter;
+package org.mailbird.Core.Services;
 
 import jakarta.mail.*;
-import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.search.FlagTerm;
-import org.mailbird.Core.Port.IMail;
+import org.mailbird.Core.DAO.MailDAO;
+import org.mailbird.Core.domain.entity.MailEntity;
+import org.mailbird.Core.domain.model.Mail;
 import org.mailbird.Core.util.Credentials;
 
+import java.util.List;
 import java.util.Properties;
 
-// Using POP3 adapter assumes using SMTP.
-public class POP3 {
+public class MailService {
     Folder folder;
+    Session session;
+    Store store;
+    MailDAO mailDAO;
 
-    public POP3() {
-
+    public MailService(MailDAO mailDAO) {
+        this.mailDAO = mailDAO;
     }
 
-//    @Override
-    public Session NewSession(Properties props) throws NoSuchProviderException {
-        Session session = Session.getInstance(props);
+    public void Connect(Credentials c) throws MessagingException {
+        Session session = Session.getInstance(c.AsProperties());
         session.setDebug(false);
-        return session;
-    }
+        this.session = session;
 
-    public Store Connect(Session session, Credentials c) throws MessagingException {
         Store store = session.getStore("imaps"); // by default
         store.connect(c.host(), c.user(), c.password());
         System.out.println("✅ Connected to " + "imaps" + " at " + c.host());
-        return store;
+        this.store = store;
+    }
+
+    public void Disconnect() throws MessagingException {
+        this.session = null;
+        if (this.store != null && store.isConnected()) {
+            this.store.close();
+        }
     }
 
     //    @Override
-    public void OpenFolder(Store store) throws MessagingException {
-        Folder inbox = store.getFolder("INBOX");
+    public void OpenFolder() throws MessagingException {
+        Folder inbox = this.store.getFolder("INBOX");
         inbox.open(Folder.READ_ONLY);
         this.folder = inbox;
     }
 
-    public Message[] LoadMails(Store store, int offset, int limit) throws MessagingException {
+    public Message[] LoadMails(int offset, int limit) throws MessagingException {
         Message[] messages;
 
         Boolean onlyUnread = false;
@@ -76,13 +84,21 @@ public class POP3 {
         }
     }
 
+    public void SaveToDatabase(Mail[] messages) {
+        this.mailDAO.SaveMails(messages);
+    }
 
-//    @Override
+    public List<MailEntity> ListFromDatabase(MailEntity[] mails) {
+        return this.mailDAO.GetMails();
+    }
+
+
+    //    @Override
     public void SendMail() {
 
     }
 
-//    @Override
+    //    @Override
     public void LoadMail(int id) {
 
     }
