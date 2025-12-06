@@ -10,6 +10,10 @@ import java.util.List;
 @Entity
 @Table(name = "users", schema = "public")
 public class UserEntity {
+    public UserEntity() {
+
+    }
+
     public UserEntity(User user) {
         // TODO: map User model to UserEntity
     }

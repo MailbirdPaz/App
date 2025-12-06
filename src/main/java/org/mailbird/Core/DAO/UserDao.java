@@ -16,24 +16,21 @@ public class UserDao {
     }
 
     public void Insert(UserEntity user) {
-        Session s = this.sessionFactory.openSession();
-        Transaction tx = s.beginTransaction();
-
-        s.persist(user);
-
-        tx.commit();
-
-        s.close();
+        Transaction tx = null;
+        try (Session session = sessionFactory.openSession()) {
+            tx = session.beginTransaction();
+            session.persist(user);
+            tx.commit();
+        } catch (Exception e) {
+            if (tx != null) tx.rollback();
+            throw e;
+        }
     }
 
     public List<UserEntity> GetList() {
-        Session s = this.sessionFactory.openSession();
-
-        List<UserEntity> list = s.createQuery("from UserEntity ", UserEntity.class).list();
-
-        s.close();
-
-        return list;
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from UserEntity ", UserEntity.class).list();
+        }
     }
 
     public Optional<UserEntity> GetByEmail(String email) {

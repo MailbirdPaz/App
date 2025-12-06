@@ -2,8 +2,10 @@ package org.mailbird.Core.DAO;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
 import org.mailbird.Core.domain.entity.MailEntity;
 import org.mailbird.Core.domain.model.Mail;
+import org.mailbird.Core.domain.model.User;
 
 import java.util.List;
 
@@ -14,29 +16,31 @@ public class MailDAO {
         this.sessionFactory = sessionFactory;
     }
 
-    public void SaveMails(Mail[] jakartaMail) {
+    public void SaveMails(List<MailEntity> mails) {
+        Transaction tx = null;
         try (Session session = this.sessionFactory.openSession()) {
-            var transaction = session.beginTransaction();
+            tx = session.beginTransaction();
 
-            for (Mail mail : jakartaMail) {
-                MailEntity mailEntity = new MailEntity(mail, false);
-                session.persist(mailEntity);
+            for (int i = 0; i < mails.size(); i++) {
+                session.persist(mails.get(i));
+                System.out.println("Persist #" + i);
+
+                if ((i + 1) % 20 == 0) { // flush every 20 emails, to avoid memory problem
+                    session.flush();
+                    session.clear();
+                }
             }
 
-
-            transaction.commit();
+            tx.commit();
+            System.out.println("tx.commit() done");
+        } catch (Exception ex) {
+            if (tx != null) tx.rollback();
+            throw ex;
         }
     }
 
     private Mail entityToModel(MailEntity m) {
-        return new Mail(
-                m.getId(),
-                m.getFromAddress(),
-                m.getToAddress(),
-                m.getSubject(),
-                m.getBody(),
-                m.getReceivedDate()
-        );
+        return new Mail(m,  new User((long)0, "", "", "", "", "", ""));
     }
 
     public List<Mail> GetMails() {

@@ -1,11 +1,16 @@
 package org.mailbird.Core.domain.entity;
 
+import jakarta.mail.*;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.mailbird.Core.domain.model.Mail;
 
 import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Entity
 @Table(name = "mails", schema = "public")
@@ -14,8 +19,70 @@ public class MailEntity {
 
     }
 
+    /// Create MailEntity from provided Message. It also extracts only text content from Message and ignore images.
+    /// Relations like from, folder, ..., i need to handle out of this constructor
+    public MailEntity(Message message) throws Exception {
+        this.mail_id = message.getMessageNumber();
+        this.subject = message.getSubject();
+        this.receivedAt = message.getReceivedDate();
+        this.isRead = message.getFlags().contains(Flags.Flag.SEEN);
+        this.isDraft = false;
+        this.text = this.getTextFromMessage(message);
+    }
+
+    private String getBestPart(Multipart multipart) throws Exception {
+        String plain = null;
+        String html = null;
+
+        for (int i = 0; i < multipart.getCount(); i++) {
+            BodyPart part = multipart.getBodyPart(i);
+
+            // пропускаем вложения
+            if (Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition())) {
+                continue;
+            }
+
+            Object content = part.getContent();
+
+            if (part.isMimeType("text/html")) {
+                html = content.toString();
+            }
+            else if (part.isMimeType("text/plain")) {
+                plain = content.toString();
+            }
+            else if (content instanceof Multipart) {
+                String nested = getBestPart((Multipart) content);
+                if (nested != null) {
+                    return nested; // если вложенный HTML найден — отдаём сразу
+                }
+            }
+        }
+
+        // HTML важнее → если есть — возвращаем его
+        if (html != null) return html;
+
+        // иначе plain
+        return plain;
+    }
+
+    private String getTextFromMessage(Message message) throws Exception {
+        if (message.isMimeType("multipart/*")) {
+            return getBestPart((Multipart) message.getContent());
+        }
+
+        if (message.isMimeType("text/html")) {
+            return message.getContent().toString();
+        }
+
+        if (message.isMimeType("text/plain")) {
+            return message.getContent().toString();
+        }
+
+        return "";
+    }
+
     public MailEntity(Mail m, boolean isDraft) {
-        this.id = (long) m.id();
+        this.mail_id = m.id();
         this.subject = m.subject();
         this.text = String.valueOf(m.body());
         this.receivedAt = m.date();
@@ -31,6 +98,11 @@ public class MailEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false, updatable = false, unique = true)
     private Long id;
+
+    @Column(nullable = false, updatable = false)
+    @Setter()
+    @Getter()
+    private int mail_id;
 
     @Column(nullable = false, length = 255)
     private String subject;

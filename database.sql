@@ -27,8 +27,9 @@ CREATE TABLE IF NOT EXISTS public.tags (
 CREATE TABLE IF NOT EXISTS public.mails (
                                             id          SERIAL PRIMARY KEY,
                                             subject     VARCHAR(255) NOT NULL,
+    mail_id     INTEGER NOT NULL,
     text        TEXT NOT NULL,
-    received_at TIMESTAMPT,
+    received_at TIMESTAMP,
     is_read     BOOLEAN DEFAULT FALSE,
     is_starred  BOOLEAN DEFAULT FALSE,
     is_draft    BOOLEAN DEFAULT FALSE,

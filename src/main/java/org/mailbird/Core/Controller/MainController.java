@@ -6,6 +6,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -24,11 +25,13 @@ import lombok.Setter;
 import org.mailbird.Core.DAO.MailDAO;
 import org.mailbird.Core.Services.AuthService;
 import org.mailbird.Core.Services.MailService;
+import org.mailbird.Core.domain.entity.MailEntity;
 import org.mailbird.Core.domain.model.Mail;
 import org.mailbird.Main;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainController {
 
@@ -65,10 +68,21 @@ public class MainController {
     // loads 10 mails and add to the list
     private ObservableList<Mail> LoadMoreMails() throws MessagingException, IOException {
         Message[] messages = this.mailService.LoadMails(this.displayedMails.size(), this.flushLoadMax);
+        // save in database
+        List<MailEntity> entities = this.mailService.SaveToDatabase(messages);
+
+        // cast to the MailEntity List to display
         ObservableList<Mail> items = FXCollections.observableList(new ArrayList<>());
-        for (Message msg : messages) {
-            items.addLast(new Mail(msg, this.authService.getUser()));
+        for (MailEntity entity : entities) {
+            items.addLast(new Mail(entity, this.authService.getUser()));
         }
+
+        System.out.println("items: " + items.size());
+
+        // this function pipeline:
+        // 1. load mails as [Message] objects from mail server
+        // 2. save Message List to the database and return MailEntity List from 'SaveToDatabase'
+        // 3. Cast MailEntity List to the ObservableList<Mail>, because javafx lists demands ObservableList<Mail>
 
         return items;
     }
@@ -79,20 +93,44 @@ public class MainController {
         mail_list.setItems(this.displayedMails);
     }
 
+    private void loadMailsInThread() {
+        Task<ObservableList<Mail>> loadMailTask = new Task<>() {
+            @Override
+            protected ObservableList<Mail> call() throws Exception {
+                System.out.println("loading mails...");
+                mailService.OpenFolder();
+                ObservableList<Mail> mails = LoadMoreMails();
+
+                return mails;
+            }
+        };
+
+        loadMailTask.setOnSucceeded(event -> {
+            mailService.CloseFolder();
+            ObservableList<Mail> mails = loadMailTask.getValue();
+            updateMailsList(mails);
+        });
+
+        loadMailTask.setOnFailed(event -> {
+            mailService.CloseFolder();
+            loadMailTask.getException().printStackTrace();
+        });
+
+        new Thread(loadMailTask).start();
+    }
+
+    private void loadMailsFromDatabase() {
+        List<Mail> mails =  this.mailService.ListFromDatabase();
+        updateMailsList(FXCollections.observableList(mails));
+    }
 
     @FXML
     void initialize() {
-        // load mails
-        try {
-            System.out.println("load mails...");
-            this.mailService.OpenFolder();
-            ObservableList<Mail> mails = LoadMoreMails();
-            this.updateMailsList(mails);
-            this.mailService.CloseFolder();
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-        }
+        // load mails from server in other thread
+        this.loadMailsInThread();
 
+        // while new mails are loading, load saved mails from the database
+        this.loadMailsFromDatabase();
 
         web = webviewMail.getEngine();
         web.setJavaScriptEnabled(false); // secure
@@ -154,270 +192,15 @@ public class MainController {
 
         // button "more..."
         buttonLoadMoreMails.setOnAction(e -> {
-            try {
-                this.mailService.OpenFolder();
-                ObservableList<Mail> mailsToUpdate = LoadMoreMails();
-                this.updateMailsList(mailsToUpdate);
-            } catch (MessagingException | IOException ex) {
-                System.err.println(ex.getMessage());
-            } finally {
-                this.mailService.CloseFolder();
-            }
+            this.loadMailsInThread();
         });
     }
 
     // mail content render
     private void showMail(Mail mail) {
-        // show theme
-//        mail_title.setText(mail.subject() == null ? "(No subject)" : mail.subject());
-//
-//        try {
-//            // try to render body
-//            try {
-//                Object body = mail.body();
-//                if (body instanceof String || body instanceof Multipart) {
-//                    System.out.println("Try to render locally");
-//                    String html = renderBody(body);
-//                    web.loadContent(html, "text/html");
-//                    return;
-//                }
-//            } catch (jakarta.mail.FolderClosedException fcx) {
-//                // упадём в «пере-рендер из Store» ниже
-//            } catch (Exception ignore) {
-//                // если локальный рендер не удался – перефетчим из Store
-//            }
-//
-//            // Гарантированный путь: открыть INBOX, взять Message и отрендерить ПРЯМО СЕЙЧАС
-//            String html = fetchAndRenderHtml(mail.id());
-//            if (html == null) {
-//                html = "<!doctype html><html><body><i>(Empty mail)</i></body></html>";
-//            }
-//            web.loadContent(html, "text/html");
+        mail_title.setText(mail.subject() == null ? "(No subject)" : mail.subject());
 
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            String esc = escape(e.getMessage() == null ? e.toString() : e.getMessage());
-//            web.loadContent("<!doctype html><html><body><pre>" + esc + "</pre></body></html>", "text/html");
-//        }
+        String body = mail.body();
+        web.loadContent(body, "text/html");
     }
-
-//    private String fetchAndRenderHtml(int messageNumber) {
-//        try {
-//            // Открываем INBOX только на время чтения
-//            this.mailService.OpenFolder();
-//            var inbox = this.store.getFolder("INBOX");
-//            if (!inbox.isOpen()) inbox.open(jakarta.mail.Folder.READ_ONLY);
-//
-//            jakarta.mail.Message msg = inbox.getMessage(messageNumber);
-//            Object content = msg.getContent();          // читаем тело
-//            // ВАЖНО: рендерим ПРЯМО сейчас, пока папка открыта
-//            return renderBody(content);
-//
-//        } catch (Exception ex) {
-//            System.err.println("fetchAndRenderHtml failed: " + ex.getClass().getSimpleName() + ": " + ex.getMessage());
-//            return null;
-//        } finally {
-//            this.mailService.CloseFolder();
-//        }
-//    }
-//
-//
-//    private Object fetchBodyFromStore(int messageNumber) {
-//        try {
-//            // Открываем INBOX только на чтение, достаём нужное письмо по номеру
-//            this.mailService.OpenFolder(this.store);
-//            var inbox = this.store.getFolder("INBOX");
-//            if (!inbox.isOpen()) inbox.open(jakarta.mail.Folder.READ_ONLY);
-//
-//            Message msg = inbox.getMessage(messageNumber);
-//            Object content = msg.getContent();   // вот тут реально читается тело
-//
-//            return content;
-//        } catch (Exception ex) {
-//            System.err.println("fetchBodyFromStore failed: " + ex.getMessage());
-//            return null;
-//        } finally {
-//            this.mailService.CloseFolder();
-//        }
-//    }
-//
-//
-//
-//    private String renderBody(Object body) throws Exception {
-//        if (body == null) return "<!doctype html><html><body><i>(Empty mail)</i></body></html>";
-//
-//        if (body instanceof String s) {
-//            String t = s.trim();
-//            boolean looksHtml = t.startsWith("<!DOCTYPE") || t.startsWith("<html") || t.contains("<body");
-//            return looksHtml ? s : wrapHtml("<pre>" + escape(s) + "</pre>");
-//        }
-//
-//        if (body instanceof Multipart mp) return renderMultipartHtml(mp);
-//
-//        return wrapHtml("<pre>" + escape(String.valueOf(body)) + "</pre>");
-//    }
-//
-//    private static final Pattern CID_SRC =
-//            Pattern.compile("(?i)src\\s*=\\s*\"cid:([^\"]+)\"");
-//
-//    private String renderMultipartHtml(Multipart root) throws Exception {
-//        // Кандидаты на отображение
-//        String htmlCandidate = null;
-//        String plainCandidate = null;
-//        String htmlContentLocation = null;
-//        Map<String, InlineImage> cidImages = new HashMap<>();
-//
-//        Deque<Multipart> stack = new ArrayDeque<>();
-//        stack.push(root);
-//
-//        while (!stack.isEmpty()) {
-//            Multipart mp = stack.pop();
-//
-//            // Узнаем подтип multiparta (нужно для alternative)
-//            String mpType = (mp.getContentType() == null) ? "" : mp.getContentType().toLowerCase(Locale.ROOT);
-//            boolean isAlternative = mpType.startsWith("multipart/alternative");
-//
-//            // RFC советует для multipart/alternative идти с конца (последняя часть — самая «богатая»)
-//            int from = isAlternative ? mp.getCount() - 1 : 0;
-//            int to   = isAlternative ? -1 : mp.getCount();
-//            int step = isAlternative ? -1 : 1;
-//
-//            for (int i = from; i != to; i += step) {
-//                BodyPart part = mp.getBodyPart(i);
-//                Object content = part.getContent();
-//                String ctype = safeContentType(part);
-//
-//                // Вложенный multipart — раскладываем дальше
-//                if (content instanceof Multipart nested) {
-//                    stack.push(nested);
-//                    continue;
-//                }
-//
-//                if (isHtml(ctype)) {
-//                    // Всегда предпочитаем HTML — перезаписываем кандидата
-//                    htmlCandidate = content.toString();
-//                    htmlContentLocation = headerFirst(part, "Content-Location");
-//                } else if (isPlain(ctype)) {
-//                    // plain берём как запасной вариант (первый встреченный)
-//                    if (plainCandidate == null) {
-//                        plainCandidate = content.toString();
-//                    }
-//                } else if (ctype.startsWith("image/")) {
-//                    String cid = contentId(part);
-//                    if (cid != null) {
-//                        cidImages.put(cid, toInlineImage(part, ctype));
-//                    }
-//                }
-//            }
-//        }
-//
-//        String html;
-//        if (htmlCandidate != null) {
-//            html = htmlCandidate;
-//            // подставим cid-картинки и base href
-//            html = replaceCid(html, cidImages);
-//            if (htmlContentLocation != null && !htmlContentLocation.isBlank()) {
-//                html = injectBase(html, htmlContentLocation);
-//            }
-//            return ensureHtmlShellIfNeeded(html);
-//        }
-//
-//        if (plainCandidate != null) {
-//            return wrapHtml("<pre>" + escape(plainCandidate) + "</pre>");
-//        }
-//
-//        return "<i>(Нет поддерживаемого содержимого)</i>";
-//    }
-//
-//
-//    private String safeContentType(Part part) throws Exception {
-//        String ct = part.getContentType();
-//        return (ct == null) ? "application/octet-stream" : ct.toLowerCase(Locale.ROOT);
-//    }
-//    private boolean isHtml(String ctype) {
-//        return ctype.startsWith("text/html");
-//    }
-//    private boolean isPlain(String ctype) {
-//        return ctype.startsWith("text/plain");
-//    }
-//
-//    private record InlineImage(String mime, String base64) {}
-//
-//    private InlineImage toInlineImage(BodyPart part, String ctype) throws Exception {
-//        try (InputStream is = part.getInputStream()) {
-//            byte[] bytes = is.readAllBytes();
-//            String b64 = java.util.Base64.getEncoder().encodeToString(bytes);
-//            String mime = ctype.split(";")[0].trim();
-//            return new InlineImage(mime, b64);
-//        }
-//    }
-//
-//    private String contentId(Part part) throws Exception {
-//        String id = headerFirst(part, "Content-ID");
-//        if (id == null) return null;
-//        id = id.trim();
-//        if (id.startsWith("<") && id.endsWith(">")) id = id.substring(1, id.length() - 1);
-//        return id;
-//    }
-//    private String headerFirst(Part part, String name) throws Exception {
-//        String[] vals = part.getHeader(name);
-//        return (vals != null && vals.length > 0) ? vals[0] : null;
-//    }
-//
-//    private String replaceCid(String html, Map<String, InlineImage> cidImages) {
-//        if (cidImages.isEmpty()) return html;
-//        Matcher m = CID_SRC.matcher(html);
-//        StringBuffer sb = new StringBuffer();
-//        while (m.find()) {
-//            String cid = m.group(1);
-//            InlineImage img = cidImages.get(cid);
-//            if (img != null) {
-//                String dataUrl = "src=\"data:" + img.mime() + ";base64," + img.base64() + "\"";
-//                m.appendReplacement(sb, Matcher.quoteReplacement(dataUrl));
-//            }
-//        }
-//        m.appendTail(sb);
-//        return sb.toString();
-//    }
-//
-//    private String injectBase(String html, String href) {
-//        int headOpen = indexOfIgnoreCase(html, "<head");
-//        if (headOpen >= 0) {
-//            int headClose = indexOfIgnoreCase(html, ">", headOpen);
-//            if (headClose > headOpen) {
-//                return html.substring(0, headClose + 1)
-//                        + "<base href=\"" + escapeAttr(href) + "\">"
-//                        + html.substring(headClose + 1);
-//            }
-//        }
-//        return """
-//                <!doctype html><html><head><meta charset="UTF-8"><base href="%s"></head><body>%s</body></html>
-//               """.formatted(escapeAttr(href), html);
-//    }
-//
-//    private int indexOfIgnoreCase(String s, String what) {
-//        return indexOfIgnoreCase(s, what, 0);
-//    }
-//
-//    private int indexOfIgnoreCase(String s, String what, int from) {
-//        return s.toLowerCase(Locale.ROOT).indexOf(what.toLowerCase(Locale.ROOT), from);
-//    }
-//
-//    private String ensureHtmlShellIfNeeded(String html) {
-//        String t = html.trim();
-//        boolean looksHtml = t.startsWith("<!DOCTYPE") || t.startsWith("<html") || t.contains("<body");
-//        return looksHtml ? html : wrapHtml(html);
-//    }
-//
-//    private String wrapHtml(String inner) {
-//        return "<!doctype html><html><head><meta charset=\"UTF-8\"></head><body>" + inner + "</body></html>";
-//    }
-//
-//    private String escape(String s) {
-//        return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;");
-//    }
-//
-//    private String escapeAttr(String s) {
-//        return escape(s).replace("\"","&quot;").replace("'","&#39;");
-//    }
 }

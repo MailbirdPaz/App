@@ -7,8 +7,10 @@ import org.mailbird.Core.domain.entity.MailEntity;
 import org.mailbird.Core.domain.model.Mail;
 import org.mailbird.Core.util.Credentials;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MailService {
     Folder folder;
@@ -84,13 +86,36 @@ public class MailService {
         }
     }
 
-    public void SaveToDatabase(Mail[] messages) {
-        this.mailDAO.SaveMails(messages);
+    ///  Saves provided Message List to the database and cast Message to the MailEntity.
+    public List<MailEntity> SaveToDatabase(Message[] messages) {
+        // cast messages to the MailEntity here
+        List<MailEntity> mails = this.messagesToMailsEntity(messages);
+        // save to the database
+        this.mailDAO.SaveMails(mails);
+
+        return mails;
     }
 
-    public List<MailEntity> ListFromDatabase(MailEntity[] mails) {
+    public List<MailEntity> messagesToMailsEntity(Message[] messages) {
+        ArrayList<MailEntity> mails = new ArrayList<>();
+
+        for (Message message : messages) {
+            try {
+                mails.add(new MailEntity(message));
+            } catch (Exception ex) {
+                Logger.getLogger(MailEntity.class.getName()).log(Level.SEVERE, "failed to cast [Message] -> [MailEntity]", ex);
+            }
+        }
+
+        return mails;
+    }
+
+
+
+    public List<Mail> ListFromDatabase() {
         return this.mailDAO.GetMails();
     }
+
 
 
     //    @Override
