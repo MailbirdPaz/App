@@ -6,6 +6,8 @@
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
@@ -37,6 +39,56 @@
                <children>
                   <VBox VBox.vgrow="ALWAYS">
                      <children>
+                        <VBox prefHeight="59.0" prefWidth="764.0">
+                           <children>
+                              <HBox prefHeight="34.0" prefWidth="122.0" spacing="10.0">
+                                 <children>
+                                    <Button fx:id="button_sync" mnemonicParsing="false">
+                                       <graphic>
+                                          <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
+                                             <children>
+                                                <ImageView fitHeight="34.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
+                                                   <image>
+                                                      <Image url="@img/email-sync-light.png" />
+                                                   </image>
+                                                </ImageView>
+                                                <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Sync" />
+                                             </children>
+                                          </HBox>
+                                       </graphic>
+                                    </Button>
+                                    <Button fx:id="button_new_mail" mnemonicParsing="false">
+                                       <graphic>
+                                          <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
+                                             <children>
+                                                <ImageView fitHeight="31.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
+                                                   <image>
+                                                      <Image url="@img/email-send-light.png" />
+                                                   </image>
+                                                </ImageView>
+                                                <Text strokeType="OUTSIDE" strokeWidth="0.0" text="New Mail" />
+                                             </children>
+                                          </HBox>
+                                       </graphic>
+                                    </Button>
+                                    <Button fx:id="button_delete_mail" mnemonicParsing="false">
+                                       <graphic>
+                                          <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
+                                             <children>
+                                                <ImageView fitHeight="33.0" fitWidth="41.0" pickOnBounds="true" preserveRatio="true">
+                                                   <image>
+                                                      <Image url="@img/email-delete-light.png" />
+                                                   </image>
+                                                </ImageView>
+                                                <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Delete" />
+                                             </children>
+                                          </HBox>
+                                       </graphic>
+                                    </Button>
+                                 </children>
+                              </HBox>
+                           </children>
+                        </VBox>
                         <!-- НЕ растим заголовок -->
                         <Label fx:id="mail_title" contentDisplay="CENTER" prefHeight="24.0" prefWidth="330.0" text="Mail title" textAlignment="CENTER">
                            <font><Font size="18.0" /></font>
