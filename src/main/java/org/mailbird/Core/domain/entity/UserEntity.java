@@ -57,16 +57,10 @@ public class UserEntity {
     @Column(length = 16)
     private String port;
 
-    // Relationships
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<FolderEntity> folders;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TagEntity> tags;
-
-    @OneToMany(mappedBy = "fromUser")
-    private List<MailEntity> sentMails;
-
-    @OneToMany(mappedBy = "toUser")
-    private List<MailEntity> receivedMails;
+//    // Relationships
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<FolderEntity> folders;
+//
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<TagEntity> tags;
 }

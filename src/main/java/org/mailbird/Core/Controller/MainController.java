@@ -17,6 +17,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.text.Text;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
@@ -30,22 +31,46 @@ import org.mailbird.Core.domain.model.Mail;
 import org.mailbird.Main;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class MainController {
 
     @FXML
-    private ListView<Mail> mail_list;   
+    private Button button_delete_mail;
 
     @FXML
-    private Label mail_title;
+    private Button button_new_mail;
 
     @FXML
     private Button button_settings;
 
     @FXML
+    private Button button_sync;
+
+    @FXML
+    private Text from_text;
+
+    @FXML
     private TextField input_search_mail;
+
+    @FXML
+    private ListView<Mail> mail_list;
+
+    @FXML
+    private Label mail_title;
+
+    @FXML
+    private Text to_text;
+
+    @FXML
+    private Text when_text;
+
 
     @FXML
     private WebView webviewMail;
@@ -74,7 +99,7 @@ public class MainController {
         // cast to the MailEntity List to display
         ObservableList<Mail> items = FXCollections.observableList(new ArrayList<>());
         for (MailEntity entity : entities) {
-            items.addLast(new Mail(entity, this.authService.getUser()));
+            items.addLast(new Mail(entity));
         }
 
         System.out.println("items: " + items.size());
@@ -143,7 +168,11 @@ public class MainController {
             Mail m = mail_list.getSelectionModel().getSelectedItem();
             if (m != null) {
                 System.out.println("Mail clicked: " + m.subject());
+                // show mail content
                 showMail(m);
+
+                // show metadata
+                mail_title.setText(m.subject() == null ? "(No subject)" : m.subject());
             }
         });
 
@@ -198,9 +227,36 @@ public class MainController {
 
     // mail content render
     private void showMail(Mail mail) {
-        mail_title.setText(mail.subject() == null ? "(No subject)" : mail.subject());
+        // show mail metadata
+        from_text.setText(mail.from());
+        to_text.setText(mail.to());
+        when_text.setText(formatEmailDate(mail.date()));
 
+        // show mail content
         String body = mail.body();
         web.loadContent(body, "text/html");
     }
+
+    public static String formatEmailDate(Date date) {
+        if (date == null) return "";
+
+        LocalDateTime dateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
+        LocalDate messageDay = dateTime.toLocalDate();
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy");
+
+        if (messageDay.isEqual(today)) {
+            return "Today, " + dateTime.format(timeFormatter);
+        }
+
+        if (messageDay.isEqual(yesterday)) {
+            return "Yesterday, " + dateTime.format(timeFormatter);
+        }
+
+        return dateTime.format(dateFormatter);  // For older dates
+    }
+
 }

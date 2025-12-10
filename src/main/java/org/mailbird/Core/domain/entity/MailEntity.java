@@ -1,6 +1,7 @@
 package org.mailbird.Core.domain.entity;
 
 import jakarta.mail.*;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,6 +29,9 @@ public class MailEntity {
         this.isRead = message.getFlags().contains(Flags.Flag.SEEN);
         this.isDraft = false;
         this.text = this.getTextFromMessage(message);
+        // todo: make for multiple from and to | add personal names
+        this.from = ((InternetAddress) message.getFrom()[0]).getAddress();
+        this.to = ((InternetAddress) message.getRecipients(Message.RecipientType.TO)[0]).getAddress();
     }
 
     private String getBestPart(Multipart multipart) throws Exception {
@@ -87,8 +91,8 @@ public class MailEntity {
         this.text = String.valueOf(m.body());
         this.receivedAt = m.date();
         this.isRead = m.isRead();
-        this.fromUser = new UserEntity(m.from()); // TODO: 'UserEntity' does not parse m.from, i need to implement this constructor
-        this.toUser = new UserEntity(m.to());
+        this.from = m.from();
+        this.to = m.to();
         this.isDraft = isDraft;
 
         // TODO: folders and tags
@@ -105,55 +109,48 @@ public class MailEntity {
     private int mail_id;
 
     @Column(nullable = false, length = 255)
+    @Getter
+    @Setter
     private String subject;
 
     @Column(nullable = false, columnDefinition = "TEXT")
+    @Getter
+    @Setter
     private String text;
 
     @Column(name = "received_at")
+    @Getter
+    @Setter
     private Date receivedAt;
 
     @Column(name = "is_read")
+    @Getter
+    @Setter
     private boolean isRead;
 
     @Column(name = "is_starred")
+    @Getter
+    @Setter
     private boolean isStarred;
 
     @Column(name = "is_draft")
+    @Getter
+    @Setter
     private boolean isDraft;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "from_id")
-    private UserEntity fromUser;
+    @Column(name = "from_email")
+    @Getter
+    @Setter
+    private String from;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "to_id")
-    private UserEntity toUser;
+    @Column(name = "to_email")
+    @Getter
+    @Setter
+    private String to;
 
     @ManyToMany(mappedBy = "mails")
     private List<FolderEntity> folders;
 
     @ManyToMany(mappedBy = "mails")
     private List<TagEntity> tags;
-
-    // TODO: set @Getter / @Setter annotations and delete those methods
-    // Getters & setters
-    public Long getId() { return id; }
-    public String getSubject() { return subject; }
-    public String getText() { return text; }
-    public Date getReceivedAt() { return receivedAt; }
-    public boolean isRead() { return isRead; }
-    public boolean isStarred() { return isStarred; }
-    public boolean isDraft() { return isDraft; }
-    public UserEntity getFromUser() { return fromUser; }
-    public UserEntity getToUser() { return toUser; }
-
-    public void setSubject(String subject) { this.subject = subject; }
-    public void setText(String text) { this.text = text; }
-    public void setReceivedAt(Date receivedAt) { this.receivedAt = receivedAt; }
-    public void setRead(boolean read) { isRead = read; }
-    public void setStarred(boolean starred) { isStarred = starred; }
-    public void setDraft(boolean draft) { isDraft = draft; }
-    public void setFromUser(UserEntity fromUser) { this.fromUser = fromUser; }
-    public void setToUser(UserEntity toUser) { this.toUser = toUser; }
 }

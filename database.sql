@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS public.mails (
     is_read     BOOLEAN DEFAULT FALSE,
     is_starred  BOOLEAN DEFAULT FALSE,
     is_draft    BOOLEAN DEFAULT FALSE,
-    from_id     INTEGER REFERENCES public.users(id),
-    to_id       INTEGER REFERENCES public.users(id)
+    from_email     VARCHAR(320) not null, -- internet says, that email spec defines 320 chars (in sum) for an address
+    to_email       VARCHAR(320) not null
     );
 
 CREATE TABLE IF NOT EXISTS public.mail_folders (

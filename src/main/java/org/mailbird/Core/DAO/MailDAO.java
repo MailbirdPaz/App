@@ -5,7 +5,6 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.mailbird.Core.domain.entity.MailEntity;
 import org.mailbird.Core.domain.model.Mail;
-import org.mailbird.Core.domain.model.User;
 
 import java.util.List;
 
@@ -40,7 +39,7 @@ public class MailDAO {
     }
 
     private Mail entityToModel(MailEntity m) {
-        return new Mail(m,  new User((long)0, "", "", "", "", "", ""));
+        return new Mail(m);
     }
 
     public List<Mail> GetMails() {

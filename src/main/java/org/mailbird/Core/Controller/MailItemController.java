@@ -21,7 +21,7 @@ public class MailItemController {
     void setData(Mail mail) throws MessagingException {
         SimpleDateFormat formatter = new SimpleDateFormat("MMM dd / HH:mm", Locale.ENGLISH);
 
-        label_from.setText(mail.from().email());
+        label_from.setText(mail.from());
         label_date.setText(formatter.format(mail.date()));
         label_subject.setText(mail.subject());
     }
