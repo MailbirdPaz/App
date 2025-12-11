@@ -1,6 +1,9 @@
 package org.mailbird.Core.Services;
 
 import jakarta.mail.*;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.search.FlagTerm;
 import org.mailbird.Core.DAO.MailDAO;
 import org.mailbird.Core.domain.entity.MailEntity;
@@ -9,6 +12,7 @@ import org.mailbird.Core.util.Credentials;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -118,10 +122,40 @@ public class MailService {
 
 
 
-    //    @Override
-    public void SendMail() {
+    public void SendMail(Credentials cred, String to, String subject, String body) throws MessagingException {
 
+        // SMTP configuration (correct)
+        Properties props = new Properties();
+        props.put("mail.transport.protocol", "smtp");          // FIX 1
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
+
+        Session smtpSession = Session.getInstance(props);
+        smtpSession.setDebug(false);
+
+        MimeMessage message = new MimeMessage(smtpSession);
+        message.setFrom(new InternetAddress(cred.user()));
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+        message.setSubject(subject);
+        // add !DOCTYPE because HTMLEditor does not add it
+        message.setContent("<!DOCTYPE html>" + body, "text/html; charset=UTF-8");
+
+
+
+        Transport transport = smtpSession.getTransport("smtp");
+
+        transport.connect(
+                "smtp.gmail.com",     // Gmail SMTP server
+                cred.user(),          // email address / username
+                cred.password()       // app password
+        );
+
+        transport.sendMessage(message, message.getAllRecipients());
+        transport.close();
     }
+
 
     //    @Override
     public void LoadMail(int id) {

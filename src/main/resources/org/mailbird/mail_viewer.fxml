@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.Text?>
+<?import javafx.scene.web.WebView?>
+
+<VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mailbird.Core.Controller.MailViewerController">
+   <children>
+      <Label fx:id="mail_title" contentDisplay="CENTER" prefHeight="27.0" prefWidth="602.0" text="Mail title" textAlignment="CENTER">
+         <font>
+            <Font size="18.0" />
+         </font>
+      </Label>
+      <VBox prefHeight="56.0" prefWidth="710.0">
+         <children>
+            <HBox prefHeight="19.0" prefWidth="730.0">
+               <children>
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="from: " />
+                  <Text fx:id="from_text" strokeType="OUTSIDE" strokeWidth="0.0" text="example@gmail.com" />
+               </children>
+            </HBox>
+            <HBox prefHeight="19.0" prefWidth="730.0">
+               <children>
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="to: " />
+                  <Text fx:id="to_text" strokeType="OUTSIDE" strokeWidth="0.0" text="example@gmail.com" />
+               </children>
+            </HBox>
+            <HBox prefHeight="19.0" prefWidth="730.0">
+               <children>
+                  <Text strokeType="OUTSIDE" strokeWidth="0.0" text="when: " />
+                  <Text fx:id="when_text" strokeType="OUTSIDE" strokeWidth="0.0" text="Yesterday at 15:32" />
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+      <WebView fx:id="webviewMail" prefWidth="523.0" />
+   </children>
+</VBox>

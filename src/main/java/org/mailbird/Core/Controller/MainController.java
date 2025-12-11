@@ -3,40 +3,33 @@ package org.mailbird.Core.Controller;
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;
 
-import jakarta.mail.*;
+import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 
 import lombok.Setter;
-import org.mailbird.Core.DAO.MailDAO;
 import org.mailbird.Core.Services.AuthService;
 import org.mailbird.Core.Services.MailService;
+import org.mailbird.Core.domain.enums.ContainerState;
 import org.mailbird.Core.domain.entity.MailEntity;
+import org.mailbird.Core.domain.interfaces.IMailWriterHandlers;
 import org.mailbird.Core.domain.model.Mail;
+import org.mailbird.Core.util.Popup;
 import org.mailbird.Main;
 
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class MainController {
@@ -71,15 +64,24 @@ public class MainController {
     @FXML
     private Text when_text;
 
-
     @FXML
-    private WebView webviewMail;
-    private WebEngine web;
+    private VBox container;
+    private final ObjectProperty<ContainerState> containerState =
+            new SimpleObjectProperty<>(ContainerState.READ); // use Objectproperty to have an ability to listen changes
+
+
+
 
     @Setter
     private AuthService authService;
     @Setter
     private MailService mailService;
+
+    private Parent mailViewerFxml;
+    private MailViewerController mailViewerController;
+
+    private Parent mailWriterFxml;
+    private MailWriterController mailWriterController;
 
     private final Button buttonLoadMoreMails = new Button("more...");
     private final ObservableList<Mail> displayedMails = FXCollections.observableArrayList();
@@ -115,7 +117,7 @@ public class MainController {
     public void updateMailsList(ObservableList<Mail> mails) {
         if (mails == null) return;
         this.displayedMails.addAll(mails);
-        mail_list.setItems(this.displayedMails);
+        this.mail_list.setItems(this.displayedMails);
     }
 
     private void loadMailsInThread() {
@@ -149,30 +151,55 @@ public class MainController {
         updateMailsList(FXCollections.observableList(mails));
     }
 
+    private void loadReadView() {
+        if (this.mailViewerController == null) return;
+        this.container.getChildren().setAll(this.mailViewerFxml);
+    }
+
+    private void loadWriteView() {
+        if (this.mailWriterController == null) return;
+        this.container.getChildren().setAll(this.mailWriterFxml );
+    }
+
     @FXML
-    void initialize() {
+    void initialize() throws IOException {
         // load mails from server in other thread
         this.loadMailsInThread();
 
-        // while new mails are loading, load saved mails from the database
+        // while new mails are loading, load saved mails from the databa se
         this.loadMailsFromDatabase();
 
-        web = webviewMail.getEngine();
-        web.setJavaScriptEnabled(false); // secure
+        // load two subscenes
+        Platform.runLater(() -> {
+            try {
+                FXMLLoader viewerLoader = new FXMLLoader(Main.class.getResource("mail_viewer.fxml"));
+                this.mailViewerFxml = viewerLoader.load();
+                this.mailViewerController = viewerLoader.getController();
 
-        // click on the mail -> show content
-//        mail_list.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
-//            if (newV != null) showMail(newV);
-//        });
+                FXMLLoader writerLoader = new FXMLLoader(Main.class.getResource("mail_writer.fxml"));
+                this.mailWriterFxml = writerLoader.load();
+                this.mailWriterController = writerLoader.getController();
+                setMaiLWriterHandlers();
+
+                loadReadView();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        // pass mail to the viewer when some element in the list clicked
         mail_list.setOnMouseClicked(e -> {
             Mail m = mail_list.getSelectionModel().getSelectedItem();
             if (m != null) {
                 System.out.println("Mail clicked: " + m.subject());
-                // show mail content
-                showMail(m);
 
-                // show metadata
-                mail_title.setText(m.subject() == null ? "(No subject)" : m.subject());
+                // check if container state is viewer
+                if (this.containerState.get() != ContainerState.READ) {
+                    this.containerState.set(ContainerState.READ);
+                }
+
+                // show mail content
+                this.mailViewerController.showMail(m);
             }
         });
 
@@ -223,40 +250,41 @@ public class MainController {
         buttonLoadMoreMails.setOnAction(e -> {
             this.loadMailsInThread();
         });
-    }
 
-    // mail content render
-    private void showMail(Mail mail) {
-        // show mail metadata
-        from_text.setText(mail.from());
-        to_text.setText(mail.to());
-        when_text.setText(formatEmailDate(mail.date()));
+        this.button_new_mail.setOnAction(e -> {
+            this.containerState.set(ContainerState.WRITE);
+        });
 
-        // show mail content
-        String body = mail.body();
-        web.loadContent(body, "text/html");
-    }
+        // change scene inside the container, if value have changed
+        this.containerState.addListener((obs, oldVal, newVal) -> {
+            System.out.println("State changed from " + oldVal + " to " + newVal);
 
-    public static String formatEmailDate(Date date) {
-        if (date == null) return "";
-
-        LocalDateTime dateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
-        LocalDate messageDay = dateTime.toLocalDate();
-        LocalDate today = LocalDate.now();
-        LocalDate yesterday = today.minusDays(1);
-
-        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy");
-
-        if (messageDay.isEqual(today)) {
-            return "Today, " + dateTime.format(timeFormatter);
+            if (newVal == ContainerState.READ) {
+                loadReadView();
+            } else if (newVal == ContainerState.WRITE) {
+                loadWriteView();
+            }
+        });
         }
 
-        if (messageDay.isEqual(yesterday)) {
-            return "Yesterday, " + dateTime.format(timeFormatter);
+        private void setMaiLWriterHandlers() {
+            this.mailWriterController.setHandlers(new IMailWriterHandlers() {
+                @Override
+                public void onSend(String to, String subject, String body) {
+                    try {
+                        System.out.println("Try to send messaeg!");
+                        mailService.SendMail(authService.getCredentials(), to, subject, body);
+                        new Popup(Alert.AlertType.CONFIRMATION, "Success", "Message '" + subject + "' send!").Show();
+                    } catch (MessagingException e) {
+                        new Popup(Alert.AlertType.ERROR, "Failed to send message", "Failed to send message").Show();
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onClose() {
+                    containerState.set(ContainerState.READ);
+                }
+            });
         }
-
-        return dateTime.format(dateFormatter);  // For older dates
     }
-
-}
