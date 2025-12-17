@@ -7,7 +7,9 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Text?>
 
@@ -42,65 +44,66 @@
                   <ListView fx:id="mail_list" prefHeight="654.0" prefWidth="291.0" VBox.vgrow="ALWAYS" />
                </children>
             </VBox>
-            <VBox prefHeight="680.0" prefWidth="678.0">
-               <children>
-                  <VBox VBox.vgrow="ALWAYS">
+            <BorderPane prefHeight="200.0" prefWidth="200.0">
+               <top>
+                  <VBox prefHeight="59.0" prefWidth="764.0" BorderPane.alignment="CENTER">
                      <children>
-                        <VBox prefHeight="59.0" prefWidth="764.0">
+                        <HBox prefHeight="34.0" prefWidth="122.0" spacing="10.0">
                            <children>
-                              <HBox prefHeight="34.0" prefWidth="122.0" spacing="10.0">
-                                 <children>
-                                    <Button fx:id="button_sync" mnemonicParsing="false">
-                                       <graphic>
-                                          <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
-                                             <children>
-                                                <ImageView fitHeight="34.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
-                                                   <image>
-                                                      <Image url="@img/email-sync-light.png" />
-                                                   </image>
-                                                </ImageView>
-                                                <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Sync" />
-                                             </children>
-                                          </HBox>
-                                       </graphic>
-                                    </Button>
-                                    <Button fx:id="button_new_mail" mnemonicParsing="false">
-                                       <graphic>
-                                          <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
-                                             <children>
-                                                <ImageView fitHeight="31.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
-                                                   <image>
-                                                      <Image url="@img/email-send-light.png" />
-                                                   </image>
-                                                </ImageView>
-                                                <Text strokeType="OUTSIDE" strokeWidth="0.0" text="New Mail" />
-                                             </children>
-                                          </HBox>
-                                       </graphic>
-                                    </Button>
-                                    <Button fx:id="button_delete_mail" mnemonicParsing="false">
-                                       <graphic>
-                                          <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
-                                             <children>
-                                                <ImageView fitHeight="33.0" fitWidth="41.0" pickOnBounds="true" preserveRatio="true">
-                                                   <image>
-                                                      <Image url="@img/email-delete-light.png" />
-                                                   </image>
-                                                </ImageView>
-                                                <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Delete" />
-                                             </children>
-                                          </HBox>
-                                       </graphic>
-                                    </Button>
-                                 </children>
-                              </HBox>
+                              <Button fx:id="button_sync" mnemonicParsing="false">
+                                 <graphic>
+                                    <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
+                                       <children>
+                                          <ImageView fitHeight="34.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
+                                             <image>
+                                                <Image url="@img/email-sync-light.png" />
+                                             </image>
+                                          </ImageView>
+                                          <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Sync" />
+                                       </children>
+                                    </HBox>
+                                 </graphic>
+                              </Button>
+                              <Button fx:id="button_new_mail" mnemonicParsing="false">
+                                 <graphic>
+                                    <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
+                                       <children>
+                                          <ImageView fitHeight="31.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
+                                             <image>
+                                                <Image url="@img/email-send-light.png" />
+                                             </image>
+                                          </ImageView>
+                                          <Text strokeType="OUTSIDE" strokeWidth="0.0" text="New Mail" />
+                                       </children>
+                                    </HBox>
+                                 </graphic>
+                              </Button>
+                              <Button fx:id="button_delete_mail" mnemonicParsing="false">
+                                 <graphic>
+                                    <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
+                                       <children>
+                                          <ImageView fitHeight="33.0" fitWidth="41.0" pickOnBounds="true" preserveRatio="true">
+                                             <image>
+                                                <Image url="@img/email-delete-light.png" />
+                                             </image>
+                                          </ImageView>
+                                          <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Delete" />
+                                       </children>
+                                    </HBox>
+                                 </graphic>
+                              </Button>
                            </children>
-                        </VBox>
-                        <VBox fx:id="container" prefHeight="652.0" prefWidth="760.0" />
+                        </HBox>
                      </children>
                   </VBox>
-               </children>
-            </VBox>
+               </top>
+               <padding>
+                  <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+               </padding>
+               <center>
+                  <StackPane fx:id="container" prefHeight="150.0" prefWidth="200.0" BorderPane.alignment="CENTER" />
+               </center>
+            </BorderPane>
          </items>
          <HBox.margin>
             <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />

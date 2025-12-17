@@ -14,6 +14,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
@@ -47,25 +48,13 @@ public class MainController {
     private Button button_sync;
 
     @FXML
-    private Text from_text;
-
-    @FXML
     private TextField input_search_mail;
 
     @FXML
     private ListView<Mail> mail_list;
 
     @FXML
-    private Label mail_title;
-
-    @FXML
-    private Text to_text;
-
-    @FXML
-    private Text when_text;
-
-    @FXML
-    private VBox container;
+    private StackPane container;
     private final ObjectProperty<ContainerState> containerState =
             new SimpleObjectProperty<>(ContainerState.READ); // use Objectproperty to have an ability to listen changes
 

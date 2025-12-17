@@ -17,10 +17,10 @@ import java.util.Date;
 
 public class MailViewerController {
     @FXML
-    private Text from_text;
+    public Text text_subject;
 
     @FXML
-    private Label mail_title;
+    private Text from_text;
 
     @FXML
     private Text to_text;
@@ -41,6 +41,7 @@ public class MailViewerController {
     // mail content render
     public void showMail(Mail mail) {
         // show mail metadata
+        text_subject.setText(mail.subject());
         from_text.setText(mail.from());
         to_text.setText(mail.to());
         when_text.setText(formatEmailDate(mail.date()));
