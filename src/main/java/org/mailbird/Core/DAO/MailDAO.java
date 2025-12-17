@@ -44,8 +44,21 @@ public class MailDAO {
 
     public List<Mail> GetMails() {
         try (Session session = this.sessionFactory.openSession()) {
-            List<MailEntity> mailEntities = session.createQuery("FROM MailEntity", MailEntity.class).list();
+            List<MailEntity> mailEntities = session.createQuery("FROM MailEntity order by mail_id DESC", MailEntity.class).list();
             return mailEntities.stream().map(this::entityToModel).toList();
+        }
+    }
+
+    public void DeleteMail(long mailUid) {
+        try (Session session = this.sessionFactory.openSession()) {
+            session.beginTransaction();
+
+            MailEntity toRemove = session.find(MailEntity.class, mailUid);
+            if (toRemove != null) {
+                session.remove(toRemove);
+            }
+
+            session.getTransaction().commit();
         }
     }
 }

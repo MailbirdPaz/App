@@ -5,6 +5,7 @@ import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.search.FlagTerm;
+import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.mailbird.Core.DAO.MailDAO;
 import org.mailbird.Core.domain.entity.MailEntity;
 import org.mailbird.Core.domain.model.Mail;
@@ -17,7 +18,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class MailService {
-    Folder folder;
+    IMAPFolder folder;
     Session session;
     Store store;
     MailDAO mailDAO;
@@ -46,12 +47,12 @@ public class MailService {
 
     //    @Override
     public void OpenFolder() throws MessagingException {
-        Folder inbox = this.store.getFolder("INBOX");
+        IMAPFolder inbox = (IMAPFolder) this.store.getFolder("INBOX"); // "INBOX" /[Gmail]/Вся почта
         inbox.open(Folder.READ_ONLY);
         this.folder = inbox;
     }
 
-    public Message[] LoadMails(int offset, int limit) throws MessagingException {
+    public Message[] LoadMails(int limit, long lastUid) throws MessagingException {
         Message[] messages;
 
         Boolean onlyUnread = false;
@@ -59,11 +60,20 @@ public class MailService {
             // Только непрочитанные письма
             messages = this.folder.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
         } else {
-            // Все письма
-            int total = this.folder.getMessageCount();
-            int end = total - offset;
-            int start = Math.max(1, end - limit + 1);
-            messages = this.folder.getMessages(start, end);
+            if (lastUid == 0) {
+                int total = this.folder.getMessageCount();
+                int start = Math.max(1, total - 9);
+                int end = total;
+                messages = this.folder.getMessages(start, end);
+            } else {
+                long lastUidOnServer = this.folder.getUIDNext() - 1;
+
+                if (lastUid >= lastUidOnServer) {
+                    messages = new Message[0];
+                } else {
+                    messages = this.folder.getMessagesByUID(lastUid + 1, UIDFolder.LASTUID);
+                }
+            }
         }
 
         // Сортируем так, чтобы newest first
@@ -105,7 +115,8 @@ public class MailService {
 
         for (Message message : messages) {
             try {
-                mails.add(new MailEntity(message));
+                long uid = folder.getUID(message);
+                mails.add(new MailEntity(message, uid));
             } catch (Exception ex) {
                 Logger.getLogger(MailEntity.class.getName()).log(Level.SEVERE, "failed to cast [Message] -> [MailEntity]", ex);
             }
@@ -114,13 +125,9 @@ public class MailService {
         return mails;
     }
 
-
-
     public List<Mail> ListFromDatabase() {
         return this.mailDAO.GetMails();
     }
-
-
 
     public void SendMail(Credentials cred, String to, String subject, String body) throws MessagingException {
 
@@ -156,9 +163,22 @@ public class MailService {
         transport.close();
     }
 
+    ///  deletes mail with provided UID from the server and database
+    public void DeleteMail(long uid) throws MessagingException {
+        this.folder.open(Folder.READ_WRITE);
+        Message message = this.folder.getMessageByUID(uid);
+        if (message != null) {
+            message.setFlag(Flags.Flag.DELETED, true);
 
-    //    @Override
-    public void LoadMail(int id) {
+            // delete from database
+            mailDAO.DeleteMail(uid);
 
+            // TODO: show notification about successful deletion instead of log
+            System.out.println("Mail with UID " + uid + " marked for deletion.");
+        } else {
+            System.out.println("Mail with UID " + uid + " not found.");
+        }
+
+        this.folder.close(true); // pass true to expunge deleted messages
     }
 }

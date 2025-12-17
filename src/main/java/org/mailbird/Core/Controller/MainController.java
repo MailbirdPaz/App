@@ -69,13 +69,12 @@ public class MainController {
     private final ObjectProperty<ContainerState> containerState =
             new SimpleObjectProperty<>(ContainerState.READ); // use Objectproperty to have an ability to listen changes
 
-
-
-
     @Setter
     private AuthService authService;
     @Setter
     private MailService mailService;
+
+    private Mail selectedMail;
 
     private Parent mailViewerFxml;
     private MailViewerController mailViewerController;
@@ -93,8 +92,11 @@ public class MainController {
     }
 
     // loads 10 mails and add to the list
-    private ObservableList<Mail> LoadMoreMails() throws MessagingException, IOException {
-        Message[] messages = this.mailService.LoadMails(this.displayedMails.size(), this.flushLoadMax);
+    private ObservableList<Mail> LoadMoreMails(long lastUid) throws MessagingException, IOException {
+        Message[] messages = this.mailService.LoadMails(this.flushLoadMax, lastUid);
+        // TODO: remove
+        System.out.println("Loaded messages from the server: " + messages.length);
+
         // save in database
         List<MailEntity> entities = this.mailService.SaveToDatabase(messages);
 
@@ -116,17 +118,19 @@ public class MainController {
 
     public void updateMailsList(ObservableList<Mail> mails) {
         if (mails == null) return;
-        this.displayedMails.addAll(mails);
+        // but better to use LinkedList to add elements to the start, but since ObservableList does not work with LinkedList
+        this.displayedMails.addAll(0, mails);
         this.mail_list.setItems(this.displayedMails);
     }
 
-    private void loadMailsInThread() {
+    private void loadMailsInThread(long lastUid) {
         Task<ObservableList<Mail>> loadMailTask = new Task<>() {
             @Override
             protected ObservableList<Mail> call() throws Exception {
                 System.out.println("loading mails...");
                 mailService.OpenFolder();
-                ObservableList<Mail> mails = LoadMoreMails();
+
+                ObservableList<Mail> mails = LoadMoreMails(lastUid);
 
                 return mails;
             }
@@ -146,11 +150,6 @@ public class MainController {
         new Thread(loadMailTask).start();
     }
 
-    private void loadMailsFromDatabase() {
-        List<Mail> mails =  this.mailService.ListFromDatabase();
-        updateMailsList(FXCollections.observableList(mails));
-    }
-
     private void loadReadView() {
         if (this.mailViewerController == null) return;
         this.container.getChildren().setAll(this.mailViewerFxml);
@@ -163,11 +162,22 @@ public class MainController {
 
     @FXML
     void initialize() throws IOException {
-        // load mails from server in other thread
-        this.loadMailsInThread();
+        // try to load mails from database. If database is empty, load from server.
+        // If not empty, then load mails from the server, where mail id > the first (earliest) mail from db;
+        List<Mail> mails =  this.mailService.ListFromDatabase();
+        if (mails.isEmpty()) {
+            // load mails from server in other thread
+            this.loadMailsInThread(0); // 0 means load the 10 latest  mails
+        } else {
+            Mail latestMail = this.findNewestMail(mails);
+            if (latestMail != null)
+            {
+                // load mails from server in other thread
+                this.loadMailsInThread(latestMail.id()); // load mails after the latest mail from db
+            }
 
-        // while new mails are loading, load saved mails from the databa se
-        this.loadMailsFromDatabase();
+            updateMailsList(FXCollections.observableList(mails));
+        }
 
         // load two subscenes
         Platform.runLater(() -> {
@@ -192,6 +202,7 @@ public class MainController {
             Mail m = mail_list.getSelectionModel().getSelectedItem();
             if (m != null) {
                 System.out.println("Mail clicked: " + m.subject());
+                this.selectedMail = m;
 
                 // check if container state is viewer
                 if (this.containerState.get() != ContainerState.READ) {
@@ -248,11 +259,35 @@ public class MainController {
 
         // button "more..."
         buttonLoadMoreMails.setOnAction(e -> {
-            this.loadMailsInThread();
+            this.loadMailsInThread(0);
         });
 
         this.button_new_mail.setOnAction(e -> {
             this.containerState.set(ContainerState.WRITE);
+        });
+
+        this.button_sync.setOnAction(e -> {
+            Mail newest = this.findNewestMail(this.displayedMails);
+            if (newest != null)
+                // TODO: show notfication is no new mails
+                this.loadMailsInThread(newest.id());
+        });
+
+        this.button_delete_mail.setOnAction(e -> {
+            if (this.selectedMail == null) {
+                return;
+            }
+
+            try {
+                // delete mail from server
+                mailService.DeleteMail(this.selectedMail.id());
+                // delete mail from the list and update it
+                this.displayedMails.remove(this.selectedMail);
+                this.mail_list.setItems(this.displayedMails);
+            } catch (MessagingException ex) {
+                new Popup(Alert.AlertType.ERROR, "Failed to delete mail", "Failed to delete mail '" + this.selectedMail.subject() + "'").Show();
+                ex.printStackTrace();
+            }
         });
 
         // change scene inside the container, if value have changed
@@ -286,5 +321,21 @@ public class MainController {
                     containerState.set(ContainerState.READ);
                 }
             });
+        }
+
+        private Mail findNewestMail(List<Mail> mails) {
+            if (mails.isEmpty()) {
+                return null;
+            }
+
+            Mail newest = mails.get(0);
+
+            for (Mail mail : mails) {
+                if (mail.id() > newest.id()) {
+                    newest = mail;
+                }
+            }
+
+            return newest;
         }
     }

@@ -22,8 +22,8 @@ public class MailEntity {
 
     /// Create MailEntity from provided Message. It also extracts only text content from Message and ignore images.
     /// Relations like from, folder, ..., i need to handle out of this constructor
-    public MailEntity(Message message) throws Exception {
-        this.mail_id = message.getMessageNumber();
+    public MailEntity(Message message, long uid) throws Exception {
+        this.mail_id = uid;
         this.subject = message.getSubject();
         this.receivedAt = message.getReceivedDate();
         this.isRead = message.getFlags().contains(Flags.Flag.SEEN);
@@ -85,18 +85,18 @@ public class MailEntity {
         return "";
     }
 
-    public MailEntity(Mail m, boolean isDraft) {
-        this.mail_id = m.id();
-        this.subject = m.subject();
-        this.text = String.valueOf(m.body());
-        this.receivedAt = m.date();
-        this.isRead = m.isRead();
-        this.from = m.from();
-        this.to = m.to();
-        this.isDraft = isDraft;
-
-        // TODO: folders and tags
-    }
+//    public MailEntity(Mail m, boolean isDraft) {
+//        this.mail_id = m.id();
+//        this.subject = m.subject();
+//        this.text = String.valueOf(m.body());
+//        this.receivedAt = m.date();
+//        this.isRead = m.isRead();
+//        this.from = m.from();
+//        this.to = m.to();
+//        this.isDraft = isDraft;
+//
+//        // TODO: folders and tags
+//    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -106,7 +106,7 @@ public class MailEntity {
     @Column(nullable = false, updatable = false)
     @Setter()
     @Getter()
-    private int mail_id;
+    private long mail_id;
 
     @Column(nullable = false, length = 255)
     @Getter
