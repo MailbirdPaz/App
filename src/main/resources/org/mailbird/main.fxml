@@ -9,6 +9,7 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Text?>
@@ -64,6 +65,21 @@
                                     </HBox>
                                  </graphic>
                               </Button>
+                              <Button fx:id="button_delete_mail" mnemonicParsing="false">
+                                 <graphic>
+                                    <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
+                                       <children>
+                                          <ImageView fitHeight="33.0" fitWidth="41.0" pickOnBounds="true" preserveRatio="true">
+                                             <image>
+                                                <Image url="@img/email-delete-light.png" />
+                                             </image>
+                                          </ImageView>
+                                          <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Delete" />
+                                       </children>
+                                    </HBox>
+                                 </graphic>
+                              </Button>
+                              <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
                               <Button fx:id="button_new_mail" mnemonicParsing="false">
                                  <graphic>
                                     <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
@@ -78,16 +94,16 @@
                                     </HBox>
                                  </graphic>
                               </Button>
-                              <Button fx:id="button_delete_mail" mnemonicParsing="false">
+                              <Button fx:id="button_reply_mail" mnemonicParsing="false">
                                  <graphic>
                                     <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
                                        <children>
-                                          <ImageView fitHeight="33.0" fitWidth="41.0" pickOnBounds="true" preserveRatio="true">
+                                          <ImageView fitHeight="31.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
                                              <image>
-                                                <Image url="@img/email-delete-light.png" />
+                                                <Image url="@img/email-reply.png" />
                                              </image>
                                           </ImageView>
-                                          <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Delete" />
+                                          <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Reply" />
                                        </children>
                                     </HBox>
                                  </graphic>

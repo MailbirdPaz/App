@@ -45,6 +45,9 @@ public class MainController {
     private Button button_settings;
 
     @FXML
+    private Button button_reply_mail;
+
+    @FXML
     private Button button_sync;
 
     @FXML
@@ -146,7 +149,7 @@ public class MainController {
 
     private void loadWriteView() {
         if (this.mailWriterController == null) return;
-        this.container.getChildren().setAll(this.mailWriterFxml );
+        this.container.getChildren().setAll(this.mailWriterFxml);
     }
 
     @FXML
@@ -252,6 +255,15 @@ public class MainController {
         });
 
         this.button_new_mail.setOnAction(e -> {
+            this.containerState.set(ContainerState.WRITE);
+        });
+
+        this.button_reply_mail.setOnAction(e -> {
+            if (this.selectedMail == null) {
+                return;
+            }
+
+            this.mailWriterController.setReplyMessage(selectedMail);
             this.containerState.set(ContainerState.WRITE);
         });
 
