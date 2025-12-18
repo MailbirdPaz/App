@@ -108,10 +108,30 @@ public class MainController {
         return items;
     }
 
-    public void updateMailsList(ObservableList<Mail> mails) {
+    private ObservableList<Mail> LoadOldMails(long oldestUid) throws MessagingException, IOException {
+        Message[] messages = this.mailService.LoadOldMails(this.flushLoadMax, oldestUid);
+        System.out.println("Loaded old messages from the server: " + messages.length);
+
+        // save to the database
+        List<MailEntity> entities = this.mailService.SaveToDatabase(messages);
+
+        // cast to the MailEntity List to display
+        ObservableList<Mail> items = FXCollections.observableList(new ArrayList<>());
+        for (MailEntity entity : entities) {
+            items.addLast(new Mail(entity));
+        }
+
+        return items;
+    }
+
+    public void updateMailsList(ObservableList<Mail> mails, boolean pushToEnd) {
         if (mails == null) return;
         // but better to use LinkedList to add elements to the start, but since ObservableList does not work with LinkedList
-        this.displayedMails.addAll(0, mails);
+        if (pushToEnd) {
+            this.displayedMails.addAll(mails);
+        } else {
+            this.displayedMails.addAll(0, mails);
+        }
         this.mail_list.setItems(this.displayedMails);
     }
 
@@ -122,16 +142,39 @@ public class MainController {
                 System.out.println("loading mails...");
                 mailService.OpenFolder();
 
-                ObservableList<Mail> mails = LoadMoreMails(lastUid);
-
-                return mails;
+                return LoadMoreMails(lastUid);
             }
         };
 
         loadMailTask.setOnSucceeded(event -> {
             mailService.CloseFolder();
             ObservableList<Mail> mails = loadMailTask.getValue();
-            updateMailsList(mails);
+            updateMailsList(mails, false);
+        });
+
+        loadMailTask.setOnFailed(event -> {
+            mailService.CloseFolder();
+            loadMailTask.getException().printStackTrace();
+        });
+
+        new Thread(loadMailTask).start();
+    }
+
+    private void loadMoreMailsInThread(long oldestUid) {
+        Task<ObservableList<Mail>> loadMailTask = new Task<>() {
+            @Override
+            protected ObservableList<Mail> call() throws Exception {
+                System.out.println("loading more old mails...");
+                mailService.OpenFolder();
+
+                return LoadOldMails(oldestUid);
+            }
+        };
+
+        loadMailTask.setOnSucceeded(event -> {
+            mailService.CloseFolder();
+            ObservableList<Mail> mails = loadMailTask.getValue();
+            updateMailsList(mails, true);
         });
 
         loadMailTask.setOnFailed(event -> {
@@ -168,7 +211,7 @@ public class MainController {
                 this.loadMailsInThread(latestMail.id()); // load mails after the latest mail from db
             }
 
-            updateMailsList(FXCollections.observableList(mails));
+            updateMailsList(FXCollections.observableList(mails), false);
         }
 
         // load two subscenes
@@ -251,7 +294,12 @@ public class MainController {
 
         // button "more..."
         buttonLoadMoreMails.setOnAction(e -> {
-            this.loadMailsInThread(0);
+            // find the oldest mail UID
+            Mail oldest = findOldestMail(mails);
+            if (oldest != null) {
+                System.out.println("Load more mails before UID: " + oldest.id());
+                this.loadMoreMailsInThread(oldest.id());
+            }
         });
 
         this.button_new_mail.setOnAction(e -> {
@@ -338,5 +386,21 @@ public class MainController {
             }
 
             return newest;
+        }
+
+        private Mail findOldestMail(List<Mail> mails) {
+            if (mails.isEmpty()) {
+                return null;
+            }
+
+            Mail oldest = mails.get(0);
+
+            for (Mail mail : mails) {
+                if (mail.id() < oldest.id()) {
+                    oldest = mail;
+                }
+            }
+
+            return oldest;
         }
     }

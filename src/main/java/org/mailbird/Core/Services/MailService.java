@@ -55,41 +55,40 @@ public class MailService {
     public Message[] LoadMails(int limit, long lastUid) throws MessagingException {
         Message[] messages;
 
-        Boolean onlyUnread = false;
-        if (onlyUnread) {
-            // Только непрочитанные письма
-            messages = this.folder.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
+        if (lastUid == 0) {
+            long total = this.folder.getUIDNext() - 1;;
+            long start = Math.max(1, total - 9);
+            long end = total;
+            messages = this.folder.getMessagesByUID(start, end);
         } else {
-            if (lastUid == 0) {
-                int total = this.folder.getMessageCount();
-                int start = Math.max(1, total - 9);
-                int end = total;
-                messages = this.folder.getMessages(start, end);
+            long lastUidOnServer = this.folder.getUIDNext() - 1;
+            if (lastUid >= lastUidOnServer) {
+                messages = new Message[0];
             } else {
-                long lastUidOnServer = this.folder.getUIDNext() - 1;
-
-                if (lastUid >= lastUidOnServer) {
-                    messages = new Message[0];
-                } else {
-                    messages = this.folder.getMessagesByUID(lastUid + 1, UIDFolder.LASTUID);
-                }
+                messages = this.folder.getMessagesByUID(lastUid + 1, UIDFolder.LASTUID);
             }
         }
 
-        // Сортируем так, чтобы newest first
-        // Для IMAP порядок getMessages может быть oldest first
-        if (messages.length > 1) {
-            Message[] reversed = new Message[messages.length];
-            for (int i = 0; i < messages.length; i++) {
-                reversed[i] = messages[messages.length - 1 - i];
-            }
-            messages = reversed;
+        // do not close folder here, so we can load info from mail later
+        // sort from the newest to the oldest (because server order can be different)
+        return sortMessages(messages);
+    }
+
+    // load 10 old mails from the oldest UID
+    public Message[] LoadOldMails(int flush, long oldestUid) throws MessagingException {
+        long end = oldestUid - 1;
+        long start = oldestUid - flush + 1;
+        Message[] messages = this.folder.getMessagesByUID(start, end);
+
+        return sortMessages(messages);
+    }
+
+    private Message[] sortMessages(Message[] messages) {
+        Message[] reversed = new Message[messages.length];
+        for (int i = 0; i < messages.length; i++) {
+            reversed[i] = messages[messages.length - 1 - i];
         }
-
-        // НЕ закрываем inbox здесь, чтобы можно было читать письма в вызывающем коде
-        // inbox.close(false);
-
-        return messages;
+        return reversed;
     }
 
     public void CloseFolder() {
