@@ -4,14 +4,12 @@ import lombok.With;
 import org.mailbird.Core.domain.entity.UserEntity;
 
 @With
-public record User(Long id, String email, String name, String surname, String protocol, String host, String port) {
+public record User(Long id, String email, String password, String host, String port) {
     public User(UserEntity entity) {
             this(
                 entity.getId(),
                 entity.getEmail(),
-                entity.getName(),
-                entity.getSurname(),
-                entity.getProtocol(),
+                entity.getPassword(),
                 entity.getHost(),
                 entity.getPort()
             );

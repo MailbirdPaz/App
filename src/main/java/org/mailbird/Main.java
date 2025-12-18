@@ -47,10 +47,18 @@ public class Main extends Application {
         this.mailService = new MailService(new MailDAO(this.hibernate.getSessionFactory()));
 
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("login.fxml"));
+        // di, to be able to use services in the initialize method
+        fxmlLoader.setControllerFactory(type -> {
+            if (type == LoginController.class) {
+                return new LoginController(authService, mailService);
+            }
+            try {
+                return type.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
         Parent parent = fxmlLoader.load();
-        LoginController loginController = fxmlLoader.getController();
-        loginController.SetAuthService(this.authService);
-        loginController.SetMailService(this.mailService);
         Scene scene = new Scene(parent);
         stage.setScene(scene);
         stage.setTitle("MailBird");

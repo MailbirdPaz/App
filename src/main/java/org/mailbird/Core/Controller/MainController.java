@@ -147,13 +147,13 @@ public class MainController {
         };
 
         loadMailTask.setOnSucceeded(event -> {
-            mailService.CloseFolder();
+//            mailService.CloseFolder();
             ObservableList<Mail> mails = loadMailTask.getValue();
             updateMailsList(mails, false);
         });
 
         loadMailTask.setOnFailed(event -> {
-            mailService.CloseFolder();
+//            mailService.CloseFolder();
             loadMailTask.getException().printStackTrace();
         });
 
@@ -172,13 +172,13 @@ public class MainController {
         };
 
         loadMailTask.setOnSucceeded(event -> {
-            mailService.CloseFolder();
+//            mailService.CloseFolder();
             ObservableList<Mail> mails = loadMailTask.getValue();
             updateMailsList(mails, true);
         });
 
         loadMailTask.setOnFailed(event -> {
-            mailService.CloseFolder();
+//            mailService.CloseFolder();
             loadMailTask.getException().printStackTrace();
         });
 

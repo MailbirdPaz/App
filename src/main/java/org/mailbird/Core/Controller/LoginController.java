@@ -2,6 +2,7 @@ package org.mailbird.Core.Controller;
 
 
 import jakarta.mail.MessagingException;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -12,16 +13,26 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import org.mailbird.Core.Services.AuthService;
 import org.mailbird.Core.Services.MailService;
+import org.mailbird.Core.domain.model.User;
 import org.mailbird.Core.util.Popup;
 import org.mailbird.Main;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 
 public class LoginController {
+
+    @FXML
+    private HBox box_users_list;
+
+    @FXML
+    private VBox box_users_list_container;
 
     @FXML
     private HBox box_with_connect_button;
@@ -47,34 +58,77 @@ public class LoginController {
     @FXML
     private ProgressIndicator spinner;
 
-    private AuthService authService;
-    private MailService mailService;
+    private final AuthService authService;
+    private final MailService mailService;
 
-    public void SetAuthService(AuthService authService) {
+    private String userSelectedEmail = "";
+
+    public LoginController(AuthService authService, MailService mailService) {
         this.authService = authService;
-    }
-    public void SetMailService(MailService mailService) {
         this.mailService = mailService;
     }
 
     @FXML
     void initialize() {
+        if (this.authService == null) {return;}
+
+        // make users list invisible for now
+        setUserListVisible(false);
+
+        ArrayList<User> users = this.authService.GetAllUsers();
+        if (!users.isEmpty()) {
+            loadUserItems(users);
+            setUserListVisible(true);
+        }
+
+        setConnectHandler();
+    }
+
+    private void loadUserItems(ArrayList<User> users) {
+        if (users.isEmpty()) {
+            return;
+        }
+
+//        Platform.runLater(() -> {
+            try {
+                for (User user : users) {
+                    FXMLLoader loader = new FXMLLoader(Main.class.getResource("account_elem.fxml"));
+                    Parent fxmlElem = loader.load();
+                    UserItemController fxmlController = loader.getController();
+                    fxmlController.SetUser(user.email(), () -> {
+                        this.userSelectedEmail = user.email();
+                        fxmlController.setSelected(true);
+                    });
+
+                    box_users_list_container.getChildren().add(fxmlElem);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+//        });
+    }
+
+    private void setUserListVisible(boolean visible) {
+        box_users_list_container.setVisible(visible);
+        box_users_list_container.setManaged(visible);
+    }
+
+    private void setConnectHandler() {
         connect_button.setOnAction(event -> {
             if (!this.validateFields()) {
                 return;
             }
 
-             this.authService.SetUserCredentials(
-                     email_input.getText(),
-                     passwd_input.getText(),
-                     host_input.getText(),
-                     port_input.getText(),
-                     "imaps"
-             ); // imaps by default
+            this.authService.SetUserCredentials(
+                    email_input.getText(),
+                    passwd_input.getText(),
+                    host_input.getText(),
+                    port_input.getText(),
+                    "imaps"
+            ); // imaps by default
 
             // show spinner
-            connect_button.setVisible(false);
-            spinner.setVisible(true);
+//            connect_button.setVisible(false);
 
             // try to connect
             try {

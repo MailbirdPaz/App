@@ -26,27 +26,13 @@ public class UserEntity {
 
     @Setter
     @Getter
-    @Column(nullable = false, length = 64)
-    private String name;
-
-    @Setter
-    @Getter
-    @Column(nullable = false, length = 64)
-    private String surname;
-
-    @Setter
-    @Getter
     @Column(nullable = false, length = 128, unique = true)
     private String email;
 
     @Setter
+    @Getter
     @Column(nullable = false, length = 128)
     private String password;
-
-    @Setter
-    @Getter
-    @Column(nullable = false, length = 16)
-    private String protocol;
 
     @Setter
     @Getter
@@ -54,6 +40,7 @@ public class UserEntity {
     private String host;
 
     @Getter
+    @Setter
     @Column(length = 16)
     private String port;
 

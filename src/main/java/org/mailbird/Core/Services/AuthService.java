@@ -10,6 +10,9 @@ import org.mailbird.Core.domain.entity.UserEntity;
 import org.mailbird.Core.domain.model.User;
 import org.mailbird.Core.util.Credentials;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AuthService {
     private UserDao userDao;
     @Setter
@@ -41,12 +44,18 @@ public class AuthService {
         newUser.setEmail(email);
         newUser.setPassword(password); // hash it
         newUser.setHost(host);
-        newUser.setProtocol("IMAP"); // default protocol
-        newUser.setName(extractNameFromEmail(email)); // cannot get it, so just get from mail
-        newUser.setSurname("Surname"); // default surname
+        newUser.setPort(port);
         this.userDao.Insert(newUser);
 
         this.user = new User(newUser);
+    }
+
+    public void SetUserByEmail(String email) {
+        var res = this.userDao.GetByEmail(email);
+        if (res.isPresent()) {
+            this.user = new User(res.get());
+            this.credentials = new Credentials(user.password(), user.host(), user.email(), user.port(), "IMAP");
+        }
     }
 
     private String extractNameFromEmail(String email) {
@@ -54,6 +63,16 @@ public class AuthService {
             return "User";
         }
         return email.substring(0, email.indexOf("@"));
+    }
+
+    public ArrayList<User> GetAllUsers() {
+        var users = this.userDao.GetList();
+        // cast entity to model
+        ArrayList<User> result = new ArrayList<>();
+        for (var u : users) {
+            result.add(new User(u));
+        }
+        return result;
     }
 
     public void LogInOAuth2() {

@@ -47,12 +47,20 @@ public class MailService {
 
     //    @Override
     public void OpenFolder() throws MessagingException {
+        if (folder.isOpen()) {
+            return;
+        }
+
         IMAPFolder inbox = (IMAPFolder) this.store.getFolder("INBOX"); // "INBOX" /[Gmail]/Вся почта
         inbox.open(Folder.READ_ONLY);
         this.folder = inbox;
     }
 
     public Message[] LoadMails(int limit, long lastUid) throws MessagingException {
+        if (!folder.isOpen()) {
+            folder.open(Folder.READ_WRITE);
+        }
+
         Message[] messages;
 
         if (lastUid == 0) {
@@ -76,6 +84,10 @@ public class MailService {
 
     // load 10 old mails from the oldest UID
     public Message[] LoadOldMails(int flush, long oldestUid) throws MessagingException {
+        if (!folder.isOpen()) {
+            folder.open(Folder.READ_WRITE);
+        }
+
         long end = oldestUid - 1;
         long start = oldestUid - flush + 1;
         Message[] messages = this.folder.getMessagesByUID(start, end);
@@ -164,20 +176,24 @@ public class MailService {
 
     ///  deletes mail with provided UID from the server and database
     public void DeleteMail(long uid) throws MessagingException {
-        this.folder.open(Folder.READ_WRITE);
-        Message message = this.folder.getMessageByUID(uid);
-        if (message != null) {
-            message.setFlag(Flags.Flag.DELETED, true);
-
-            // delete from database
-            mailDAO.DeleteMail(uid);
-
-            // TODO: show notification about successful deletion instead of log
-            System.out.println("Mail with UID " + uid + " marked for deletion.");
-        } else {
-            System.out.println("Mail with UID " + uid + " not found.");
+        if (!folder.isOpen()) {
+            folder.open(Folder.READ_WRITE);
         }
 
-        this.folder.close(true); // pass true to expunge deleted messages
+        Message message = folder.getMessageByUID(uid);
+        if (message == null) {
+            System.out.println("Mail with UID " + uid + " not found.");
+            return;
+        }
+
+        // 1️⃣ Mark deleted
+        message.setFlag(Flags.Flag.DELETED, true);
+
+        // 2️⃣ FORCE server-side delete
+        folder.expunge();
+
+        // 3️⃣ Only NOW delete locally
+        mailDAO.DeleteMail(uid);
+
     }
 }

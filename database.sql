@@ -1,13 +1,10 @@
 CREATE TABLE IF NOT EXISTS public.users (
-                                            id          SERIAL PRIMARY KEY,
-                                            name        VARCHAR(64) NOT NULL,
-    surname     VARCHAR(64) NOT NULL,
+    id          SERIAL PRIMARY KEY,
     email       VARCHAR(128) NOT NULL UNIQUE,
     password    VARCHAR(128) NOT NULL,
-    protocol    VARCHAR(16)  NOT NULL,  -- IMAP / POP3
     host        VARCHAR(128),
     port        VARCHAR(16)
-    );
+);
 
 CREATE TABLE IF NOT EXISTS public.folders (
                                               id         SERIAL PRIMARY KEY,
