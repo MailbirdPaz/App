@@ -1,8 +1,6 @@
 package org.mailbird.Core.Services;
 
-import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
-import jakarta.mail.Store;
 import lombok.Getter;
 import lombok.Setter;
 import org.mailbird.Core.DAO.UserDao;
@@ -11,13 +9,12 @@ import org.mailbird.Core.domain.model.User;
 import org.mailbird.Core.util.Credentials;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class AuthService {
     private UserDao userDao;
     @Setter
     @Getter
-    private User user;
+    private UserEntity currentUser; // Store entity, because we need only UserEntity, to save mail to the database
     @Getter
     private Credentials credentials;
     public Session session;
@@ -35,7 +32,7 @@ public class AuthService {
         // first try to find user in database
         var res = this.userDao.GetByEmail(email);
         if (res.isPresent()) {
-            this.user = new User(res.get());
+            this.currentUser = res.get();
             return;
         }
 
@@ -47,22 +44,21 @@ public class AuthService {
         newUser.setPort(port);
         this.userDao.Insert(newUser);
 
-        this.user = new User(newUser);
+        this.currentUser = newUser;
     }
 
     public void SetUserByEmail(String email) {
         var res = this.userDao.GetByEmail(email);
         if (res.isPresent()) {
-            this.user = new User(res.get());
-            this.credentials = new Credentials(user.password(), user.host(), user.email(), user.port(), "IMAP");
+            this.currentUser = res.get();
+            this.credentials = new Credentials(
+                    currentUser.getPassword(),
+                    currentUser.getHost(),
+                    currentUser.getEmail(),
+                    currentUser.getPort(),
+                    "IMAP"
+            );
         }
-    }
-
-    private String extractNameFromEmail(String email) {
-        if (email == null || !email.contains("@")) {
-            return "User";
-        }
-        return email.substring(0, email.indexOf("@"));
     }
 
     public ArrayList<User> GetAllUsers() {
@@ -75,7 +71,9 @@ public class AuthService {
         return result;
     }
 
-    public void LogInOAuth2() {
-
+    public void LogOut() {
+        this.currentUser = null;
+        this.credentials = null;
+        this.session = null;
     }
 }

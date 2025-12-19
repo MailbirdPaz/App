@@ -24,6 +24,7 @@ public class Main extends Application {
     private Config config;
     private AuthService authService;
     private MailService mailService;
+    public static Stage mainStage;
 
     public static void main(String[] args) throws IOException {
         launch(args);
@@ -31,6 +32,9 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
+        // save stage, to use it in other controllers
+        mainStage = stage;
+
         // Load .env config
         this.config = new Config();
 
@@ -63,27 +67,6 @@ public class Main extends Application {
         stage.setScene(scene);
         stage.setTitle("MailBird");
         stage.show();
-    }
-
-    public static void SwitchScene(Stage stage, String sceneName, Boolean isSeparateWindow) throws Exception {
-        FXMLLoader fxmlLoader = new FXMLLoader(Main.class.getResource(sceneName));
-        Parent parent = fxmlLoader.load();
-
-        if (isSeparateWindow) {
-            Stage settingsStage = new Stage();
-            settingsStage.setTitle("Settings");
-            settingsStage.setScene(new Scene(parent));
-
-            // Optional: make it modal (blocks the main window until closed)
-            settingsStage.initModality(Modality.APPLICATION_MODAL);
-            settingsStage.show();
-        } else {
-            fxmlLoader.getController();
-            Scene scene = new Scene(parent);
-            stage.setScene(scene);
-            stage.setTitle("MailBird");
-            stage.show();
-        }
     }
 
     public static void Close() {

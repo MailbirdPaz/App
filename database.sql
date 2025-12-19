@@ -22,8 +22,8 @@ CREATE TABLE IF NOT EXISTS public.tags (
     );
 
 CREATE TABLE IF NOT EXISTS public.mails (
-                                            id          SERIAL PRIMARY KEY,
-                                            subject     VARCHAR(255) NOT NULL,
+    id          SERIAL PRIMARY KEY,
+    subject     VARCHAR(255) NOT NULL,
     mail_id     BIGINT NOT NULL,
     text        TEXT NOT NULL,
     received_at TIMESTAMP,
@@ -31,8 +31,9 @@ CREATE TABLE IF NOT EXISTS public.mails (
     is_starred  BOOLEAN DEFAULT FALSE,
     is_draft    BOOLEAN DEFAULT FALSE,
     from_email     VARCHAR(320) not null, -- internet says, that email spec defines 320 chars (in sum) for an address
-    to_email       VARCHAR(320) not null
-    );
+    to_email       VARCHAR(320) not null,
+    owner_user_id INTEGER NOT NULL REFERENCES public.users(id) -- because user can be a sender or a receiver
+);
 
 CREATE TABLE IF NOT EXISTS public.mail_folders (
                                                    folder_id INTEGER NOT NULL REFERENCES public.folders(id),

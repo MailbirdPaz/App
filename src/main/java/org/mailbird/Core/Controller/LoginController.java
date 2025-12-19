@@ -89,7 +89,6 @@ public class LoginController {
             return;
         }
 
-//        Platform.runLater(() -> {
             try {
                 for (User user : users) {
                     FXMLLoader loader = new FXMLLoader(Main.class.getResource("account_elem.fxml"));
@@ -97,15 +96,13 @@ public class LoginController {
                     UserItemController fxmlController = loader.getController();
                     fxmlController.SetUser(user.email(), () -> {
                         this.userSelectedEmail = user.email();
-                        fxmlController.setSelected(true);
                     });
 
-                    box_users_list_container.getChildren().add(fxmlElem);
+                    box_users_list.getChildren().add(fxmlElem);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
-//        });
     }
 
     private void setUserListVisible(boolean visible) {
@@ -115,20 +112,22 @@ public class LoginController {
 
     private void setConnectHandler() {
         connect_button.setOnAction(event -> {
-            if (!this.validateFields()) {
-                return;
+            if (userSelectedEmail.isEmpty()) {
+                // if no user selected, log in by input fields
+                if (!this.validateFields()) {
+                    return;
+                }
+
+                this.authService.SetUserCredentials(
+                        email_input.getText(),
+                        passwd_input.getText(),
+                        host_input.getText(),
+                        port_input.getText(),
+                        "imaps"
+                ); // imaps by default
+            } else {
+                this.authService.SetUserByEmail(userSelectedEmail);
             }
-
-            this.authService.SetUserCredentials(
-                    email_input.getText(),
-                    passwd_input.getText(),
-                    host_input.getText(),
-                    port_input.getText(),
-                    "imaps"
-            ); // imaps by default
-
-            // show spinner
-//            connect_button.setVisible(false);
 
             // try to connect
             try {

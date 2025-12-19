@@ -8,6 +8,7 @@ import jakarta.mail.search.FlagTerm;
 import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.mailbird.Core.DAO.MailDAO;
 import org.mailbird.Core.domain.entity.MailEntity;
+import org.mailbird.Core.domain.entity.UserEntity;
 import org.mailbird.Core.domain.model.Mail;
 import org.mailbird.Core.util.Credentials;
 
@@ -45,15 +46,32 @@ public class MailService {
         }
     }
 
+    public void EndSession() {
+        try {
+            this.CloseFolder();
+            this.Disconnect();
+        } catch (MessagingException ex) {
+            ex.printStackTrace();
+        }
+    }
+
     //    @Override
     public void OpenFolder() throws MessagingException {
-        if (folder.isOpen()) {
+        if (folder != null && folder.isOpen()) {
             return;
         }
 
         IMAPFolder inbox = (IMAPFolder) this.store.getFolder("INBOX"); // "INBOX" /[Gmail]/Вся почта
         inbox.open(Folder.READ_ONLY);
         this.folder = inbox;
+    }
+
+    public void CloseFolder() {
+        if (folder != null && folder.isOpen()) {
+            try {
+                folder.close(false);
+            } catch (MessagingException ex) {}
+        }
     }
 
     public Message[] LoadMails(int limit, long lastUid) throws MessagingException {
@@ -103,20 +121,12 @@ public class MailService {
         return reversed;
     }
 
-    public void CloseFolder() {
-        if (folder != null) {
-            try {
-                folder.close(false);
-            } catch (MessagingException ex) {}
-        }
-    }
-
     ///  Saves provided Message List to the database and cast Message to the MailEntity.
-    public List<MailEntity> SaveToDatabase(Message[] messages) {
+    public List<MailEntity> SaveToDatabase(Message[] messages, UserEntity currentUser) {
         // cast messages to the MailEntity here
         List<MailEntity> mails = this.messagesToMailsEntity(messages);
         // save to the database
-        this.mailDAO.SaveMails(mails);
+        this.mailDAO.SaveMails(mails, currentUser);
 
         return mails;
     }
@@ -136,8 +146,8 @@ public class MailService {
         return mails;
     }
 
-    public List<Mail> ListFromDatabase() {
-        return this.mailDAO.GetMails();
+    public List<Mail> ListFromDatabase(UserEntity currentUser) {
+        return this.mailDAO.GetMailsByOwner(currentUser);
     }
 
     public void SendMail(Credentials cred, String to, String subject, String body) throws MessagingException {

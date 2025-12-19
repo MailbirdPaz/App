@@ -34,7 +34,7 @@ public class MailEntity {
         this.to = ((InternetAddress) message.getRecipients(Message.RecipientType.TO)[0]).getAddress();
     }
 
-    private String getBestPart(Multipart multipart) throws Exception {
+    private String getHtmlContent(Multipart multipart) throws Exception {
         String plain = null;
         String html = null;
 
@@ -55,7 +55,7 @@ public class MailEntity {
                 plain = content.toString();
             }
             else if (content instanceof Multipart) {
-                String nested = getBestPart((Multipart) content);
+                String nested = getHtmlContent((Multipart) content);
                 if (nested != null) {
                     return nested; // если вложенный HTML найден — отдаём сразу
                 }
@@ -71,7 +71,7 @@ public class MailEntity {
 
     private String getTextFromMessage(Message message) throws Exception {
         if (message.isMimeType("multipart/*")) {
-            return getBestPart((Multipart) message.getContent());
+            return getHtmlContent((Multipart) message.getContent());
         }
 
         if (message.isMimeType("text/html")) {
@@ -84,19 +84,6 @@ public class MailEntity {
 
         return "";
     }
-
-//    public MailEntity(Mail m, boolean isDraft) {
-//        this.mail_id = m.id();
-//        this.subject = m.subject();
-//        this.text = String.valueOf(m.body());
-//        this.receivedAt = m.date();
-//        this.isRead = m.isRead();
-//        this.from = m.from();
-//        this.to = m.to();
-//        this.isDraft = isDraft;
-//
-//        // TODO: folders and tags
-//    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -148,9 +135,15 @@ public class MailEntity {
     @Setter
     private String to;
 
-    @ManyToMany(mappedBy = "mails")
-    private List<FolderEntity> folders;
+    @Getter
+    @Setter
+    @ManyToOne()
+    @JoinColumn(name = "owner_user_id", nullable = false)
+    private UserEntity owner;
 
-    @ManyToMany(mappedBy = "mails")
-    private List<TagEntity> tags;
+//    @ManyToMany(mappedBy = "mails")
+//    private List<FolderEntity> folders;
+//
+//    @ManyToMany(mappedBy = "mails")
+//    private List<TagEntity> tags;
 }

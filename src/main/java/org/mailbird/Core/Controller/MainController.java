@@ -13,10 +13,12 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import lombok.Setter;
@@ -90,7 +92,7 @@ public class MainController {
         System.out.println("Loaded messages from the server: " + messages.length);
 
         // save in database
-        List<MailEntity> entities = this.mailService.SaveToDatabase(messages);
+        List<MailEntity> entities = this.mailService.SaveToDatabase(messages, this.authService.getCurrentUser());
 
         // cast to the MailEntity List to display
         ObservableList<Mail> items = FXCollections.observableList(new ArrayList<>());
@@ -113,7 +115,7 @@ public class MainController {
         System.out.println("Loaded old messages from the server: " + messages.length);
 
         // save to the database
-        List<MailEntity> entities = this.mailService.SaveToDatabase(messages);
+        List<MailEntity> entities = this.mailService.SaveToDatabase(messages, this.authService.getCurrentUser());
 
         // cast to the MailEntity List to display
         ObservableList<Mail> items = FXCollections.observableList(new ArrayList<>());
@@ -199,7 +201,7 @@ public class MainController {
     void initialize() throws IOException {
         // try to load mails from database. If database is empty, load from server.
         // If not empty, then load mails from the server, where mail id > the first (earliest) mail from db;
-        List<Mail> mails =  this.mailService.ListFromDatabase();
+        List<Mail> mails =  this.mailService.ListFromDatabase(this.authService.getCurrentUser());
         if (mails.isEmpty()) {
             // load mails from server in other thread
             this.loadMailsInThread(0); // 0 means load the 10 latest  mails
@@ -252,11 +254,28 @@ public class MainController {
 
         // Settings button
         button_settings.setOnAction(event -> {
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             try {
-                Main.SwitchScene(stage, "settings.fxml", true);
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
+                FXMLLoader loader = new FXMLLoader(Main.class.getResource("settings.fxml"));
+                loader.setControllerFactory(type -> {
+                    if (type == SettingsController.class) {
+                        return new SettingsController(authService, mailService);
+                    }
+                    try {
+                        return type.getDeclaredConstructor().newInstance();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+                Parent root = loader.load();
+
+                Stage settingsStage = new Stage();
+                settingsStage.setTitle("Settings");
+                settingsStage.setScene(new Scene(root));
+                settingsStage.initModality(Modality.NONE); // или WINDOW_MODAL
+                settingsStage.show();
+
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         });
 
@@ -318,7 +337,7 @@ public class MainController {
         this.button_sync.setOnAction(e -> {
             Mail newest = this.findNewestMail(this.displayedMails);
             if (newest != null)
-                // TODO: show notfication is no new mails
+                // TODO: show notfication if no new mails
                 this.loadMailsInThread(newest.id());
         });
 

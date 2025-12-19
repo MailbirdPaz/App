@@ -4,6 +4,7 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.mailbird.Core.domain.entity.MailEntity;
+import org.mailbird.Core.domain.entity.UserEntity;
 import org.mailbird.Core.domain.model.Mail;
 
 import java.util.List;
@@ -15,12 +16,13 @@ public class MailDAO {
         this.sessionFactory = sessionFactory;
     }
 
-    public void SaveMails(List<MailEntity> mails) {
+    public void SaveMails(List<MailEntity> mails, UserEntity currentUser) {
         Transaction tx = null;
         try (Session session = this.sessionFactory.openSession()) {
             tx = session.beginTransaction();
 
             for (int i = 0; i < mails.size(); i++) {
+                mails.get(i).setOwner(currentUser);
                 session.persist(mails.get(i));
                 System.out.println("Persist #" + i);
 
@@ -42,9 +44,14 @@ public class MailDAO {
         return new Mail(m);
     }
 
-    public List<Mail> GetMails() {
+    public List<Mail> GetMailsByOwner(UserEntity owner) {
         try (Session session = this.sessionFactory.openSession()) {
-            List<MailEntity> mailEntities = session.createQuery("FROM MailEntity order by mail_id DESC", MailEntity.class).list();
+            List<MailEntity> mailEntities = session.createQuery(
+                    "FROM MailEntity m WHERE m.owner.id = :ownerId ORDER BY m.mail_id DESC", MailEntity.class
+                )
+                    .setParameter("ownerId", owner.getId())
+                    .list();
+
             return mailEntities.stream().map(this::entityToModel).toList();
         }
     }
