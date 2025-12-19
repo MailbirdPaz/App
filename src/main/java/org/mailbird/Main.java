@@ -7,9 +7,11 @@ import javafx.scene.Scene;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.mailbird.Core.Controller.LoginController;
+import org.mailbird.Core.DAO.FolderDAO;
 import org.mailbird.Core.DAO.MailDAO;
 import org.mailbird.Core.DAO.UserDao;
 import org.mailbird.Core.Services.AuthService;
+import org.mailbird.Core.Services.FolderService;
 import org.mailbird.Core.Services.MailService;
 import org.mailbird.Core.domain.model.Mail;
 import org.mailbird.Core.util.Config;
@@ -24,6 +26,7 @@ public class Main extends Application {
     private Config config;
     private AuthService authService;
     private MailService mailService;
+    private FolderService folderService;
     public static Stage mainStage;
 
     public static void main(String[] args) throws IOException {
@@ -47,21 +50,15 @@ public class Main extends Application {
         // Auth service
         this.authService = new AuthService(userDao);
 
-        // Mail service - communication with mail server and database mail entity
+        // Mail service
         this.mailService = new MailService(new MailDAO(this.hibernate.getSessionFactory()));
+
+        // Folder service
+        this.folderService = new FolderService(new FolderDAO(this.hibernate.getSessionFactory()));
 
         FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("login.fxml"));
         // di, to be able to use services in the initialize method
-        fxmlLoader.setControllerFactory(type -> {
-            if (type == LoginController.class) {
-                return new LoginController(authService, mailService);
-            }
-            try {
-                return type.getDeclaredConstructor().newInstance();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        });
+        fxmlLoader.setControllerFactory(type -> new LoginController(authService, mailService, folderService));
         Parent parent = fxmlLoader.load();
         Scene scene = new Scene(parent);
         stage.setScene(scene);

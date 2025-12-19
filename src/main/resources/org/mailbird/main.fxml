@@ -12,6 +12,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
 <HBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="1100.0" spacing="10.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mailbird.Core.Controller.MainController">
@@ -41,8 +42,23 @@
          <items>
             <VBox prefHeight="680.0" prefWidth="300.0" spacing="10.0">
                <children>
+                  <HBox prefHeight="21.0" prefWidth="251.0">
+                     <children>
+                        <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Folder: ">
+                           <font>
+                              <Font name="JetBrains Mono Regular" size="15.0" />
+                           </font>
+                        </Text>
+                        <Text fx:id="text_folder" strokeType="OUTSIDE" strokeWidth="0.0" text="INBOX">
+                           <font>
+                              <Font name="JetBrains Mono Medium" size="15.0" />
+                           </font>
+                        </Text>
+                     </children>
+                  </HBox>
                   <TextField fx:id="input_search_mail" prefHeight="25.0" prefWidth="200.0" promptText="Search" />
-                  <ListView fx:id="mail_list" prefHeight="654.0" prefWidth="291.0" VBox.vgrow="ALWAYS" />
+                  <ListView fx:id="mail_list" prefHeight="588.0" prefWidth="251.0" VBox.vgrow="ALWAYS" />
+                  <Button fx:id="button_more" mnemonicParsing="false" text="More..." />
                </children>
             </VBox>
             <BorderPane prefHeight="200.0" prefWidth="200.0">
@@ -80,6 +96,20 @@
                                  </graphic>
                               </Button>
                               <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
+                              <Button fx:id="button_folder" mnemonicParsing="false">
+                                 <graphic>
+                                    <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">
+                                       <children>
+                                          <ImageView fitHeight="31.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
+                                             <image>
+                                                <Image url="@img/folder.png" />
+                                             </image>
+                                          </ImageView>
+                                          <Text strokeType="OUTSIDE" strokeWidth="0.0" text="Folder" />
+                                       </children>
+                                    </HBox>
+                                 </graphic>
+                              </Button>
                               <Button fx:id="button_new_mail" mnemonicParsing="false">
                                  <graphic>
                                     <HBox alignment="CENTER" prefHeight="34.0" prefWidth="79.0" spacing="10.0">

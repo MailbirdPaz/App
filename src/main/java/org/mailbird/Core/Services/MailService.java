@@ -7,6 +7,7 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.search.FlagTerm;
 import org.eclipse.angus.mail.imap.IMAPFolder;
 import org.mailbird.Core.DAO.MailDAO;
+import org.mailbird.Core.domain.entity.FolderEntity;
 import org.mailbird.Core.domain.entity.MailEntity;
 import org.mailbird.Core.domain.entity.UserEntity;
 import org.mailbird.Core.domain.model.Mail;
@@ -62,7 +63,7 @@ public class MailService {
         }
 
         IMAPFolder inbox = (IMAPFolder) this.store.getFolder("INBOX"); // "INBOX" /[Gmail]/Вся почта
-        inbox.open(Folder.READ_ONLY);
+        inbox.open(Folder.READ_WRITE);
         this.folder = inbox;
     }
 
@@ -122,11 +123,11 @@ public class MailService {
     }
 
     ///  Saves provided Message List to the database and cast Message to the MailEntity.
-    public List<MailEntity> SaveToDatabase(Message[] messages, UserEntity currentUser) {
+    public List<MailEntity> SaveToDatabase(Message[] messages, UserEntity currentUser, FolderEntity folder) {
         // cast messages to the MailEntity here
         List<MailEntity> mails = this.messagesToMailsEntity(messages);
         // save to the database
-        this.mailDAO.SaveMails(mails, currentUser);
+        this.mailDAO.SaveMails(mails, currentUser, folder);
 
         return mails;
     }
@@ -148,6 +149,10 @@ public class MailService {
 
     public List<Mail> ListFromDatabase(UserEntity currentUser) {
         return this.mailDAO.GetMailsByOwner(currentUser);
+    }
+
+    public List<Mail> ListFromDatabaseByFolder(UserEntity currentUser, FolderEntity folder) {
+        return this.mailDAO.GetMailsByOwnerAndFolder(currentUser, folder);
     }
 
     public void SendMail(Credentials cred, String to, String subject, String body) throws MessagingException {
@@ -182,6 +187,10 @@ public class MailService {
 
         transport.sendMessage(message, message.getAllRecipients());
         transport.close();
+    }
+
+    public void MoveToFolder(Long id, UserEntity user, FolderEntity folder) {
+        this.mailDAO.MoveToFolder(id, user, folder);
     }
 
     ///  deletes mail with provided UID from the server and database

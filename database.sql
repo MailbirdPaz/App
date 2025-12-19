@@ -7,19 +7,10 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 CREATE TABLE IF NOT EXISTS public.folders (
-                                              id         SERIAL PRIMARY KEY,
-                                              title      VARCHAR(64) NOT NULL,
-    color      VARCHAR(16) NOT NULL,
-    icon_path  VARCHAR(255),
+    id         SERIAL PRIMARY KEY,
+    title      VARCHAR(64) NOT NULL,
     user_id    INTEGER REFERENCES public.users(id)
-    );
-
-CREATE TABLE IF NOT EXISTS public.tags (
-                                           id       SERIAL PRIMARY KEY,
-                                           title    VARCHAR(64) NOT NULL,
-    color    VARCHAR(16) NOT NULL,
-    user_id  INTEGER REFERENCES public.users(id)
-    );
+);
 
 CREATE TABLE IF NOT EXISTS public.mails (
     id          SERIAL PRIMARY KEY,
@@ -36,13 +27,7 @@ CREATE TABLE IF NOT EXISTS public.mails (
 );
 
 CREATE TABLE IF NOT EXISTS public.mail_folders (
-                                                   folder_id INTEGER NOT NULL REFERENCES public.folders(id),
+    folder_id INTEGER NOT NULL REFERENCES public.folders(id),
     mail_id   INTEGER NOT NULL REFERENCES public.mails(id),
     PRIMARY KEY (folder_id, mail_id)
-    );
-
-CREATE TABLE IF NOT EXISTS public.mail_tags (
-                                                tag_id  INTEGER NOT NULL REFERENCES public.tags(id),
-    mail_id INTEGER NOT NULL REFERENCES public.mails(id),
-    PRIMARY KEY (tag_id, mail_id)
-    );
+);

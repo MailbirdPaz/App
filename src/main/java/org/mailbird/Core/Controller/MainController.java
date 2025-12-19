@@ -23,7 +23,9 @@ import javafx.stage.Stage;
 
 import lombok.Setter;
 import org.mailbird.Core.Services.AuthService;
+import org.mailbird.Core.Services.FolderService;
 import org.mailbird.Core.Services.MailService;
+import org.mailbird.Core.domain.entity.FolderEntity;
 import org.mailbird.Core.domain.enums.ContainerState;
 import org.mailbird.Core.domain.entity.MailEntity;
 import org.mailbird.Core.domain.interfaces.IMailWriterHandlers;
@@ -59,14 +61,25 @@ public class MainController {
     private ListView<Mail> mail_list;
 
     @FXML
+    private Text text_folder;
+
+    @FXML
+    private Button button_folder;
+
+    @FXML
+    private Button button_more;
+
+    @FXML
     private StackPane container;
     private final ObjectProperty<ContainerState> containerState =
             new SimpleObjectProperty<>(ContainerState.READ); // use Objectproperty to have an ability to listen changes
 
-    @Setter
     private AuthService authService;
-    @Setter
     private MailService mailService;
+    private FolderService folderService;
+
+    private ContextMenu contextMenu = new ContextMenu();
+    private Menu moveToMenu = new Menu("Move to");
 
     private Mail selectedMail;
 
@@ -76,13 +89,13 @@ public class MainController {
     private Parent mailWriterFxml;
     private MailWriterController mailWriterController;
 
-    private final Button buttonLoadMoreMails = new Button("more...");
     private final ObservableList<Mail> displayedMails = FXCollections.observableArrayList();
     private final int flushLoadMax = 10; // load maximum 10 mails at once
 
-    public MainController(AuthService authService, MailService mailService) {
+    public MainController(AuthService authService, MailService mailService, FolderService folderService) {
         this.authService = authService;
         this.mailService = mailService;
+        this.folderService = folderService;
     }
 
     // loads 10 mails and add to the list
@@ -92,7 +105,11 @@ public class MainController {
         System.out.println("Loaded messages from the server: " + messages.length);
 
         // save in database
-        List<MailEntity> entities = this.mailService.SaveToDatabase(messages, this.authService.getCurrentUser());
+        List<MailEntity> entities = this.mailService.SaveToDatabase(
+                messages,
+                this.authService.getCurrentUser(),
+                this.folderService.GetCurrentFolderEntity(this.authService.getCurrentUser())
+        );
 
         // cast to the MailEntity List to display
         ObservableList<Mail> items = FXCollections.observableList(new ArrayList<>());
@@ -115,7 +132,11 @@ public class MainController {
         System.out.println("Loaded old messages from the server: " + messages.length);
 
         // save to the database
-        List<MailEntity> entities = this.mailService.SaveToDatabase(messages, this.authService.getCurrentUser());
+        List<MailEntity> entities = this.mailService.SaveToDatabase(
+                messages,
+                this.authService.getCurrentUser(),
+                this.folderService.GetCurrentFolderEntity(this.authService.getCurrentUser())
+        );
 
         // cast to the MailEntity List to display
         ObservableList<Mail> items = FXCollections.observableList(new ArrayList<>());
@@ -216,7 +237,7 @@ public class MainController {
             updateMailsList(FXCollections.observableList(mails), false);
         }
 
-        // load two subscenes
+        // preload fxmls
         Platform.runLater(() -> {
             try {
                 FXMLLoader viewerLoader = new FXMLLoader(Main.class.getResource("mail_viewer.fxml"));
@@ -251,21 +272,11 @@ public class MainController {
             }
         });
 
-
         // Settings button
         button_settings.setOnAction(event -> {
             try {
                 FXMLLoader loader = new FXMLLoader(Main.class.getResource("settings.fxml"));
-                loader.setControllerFactory(type -> {
-                    if (type == SettingsController.class) {
-                        return new SettingsController(authService, mailService);
-                    }
-                    try {
-                        return type.getDeclaredConstructor().newInstance();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                loader.setControllerFactory(type -> new SettingsController(authService, mailService, folderService));
                 Parent root = loader.load();
 
                 Stage settingsStage = new Stage();
@@ -279,32 +290,89 @@ public class MainController {
             }
         });
 
+        button_folder.setOnAction(event -> {
+             try {
+                 FXMLLoader loader = new FXMLLoader(Main.class.getResource("folder.fxml"));
+                 loader.setControllerFactory(type ->
+                         new FolderController(
+                                 folderService,
+                                 this.authService.getCurrentUser(),
+                                 folder_name -> {
+                                        System.out.println("Selected folder: " + folder_name);
+                                        // update email list to show mails from the selected folder
+                                        this.onChangeFolder(folder_name);
+                                 }
+                         )
+                 );
+                 Parent root = loader.load();
+
+                 Stage stage = new Stage();
+                 stage.setTitle("Folders");
+                 stage.setScene(new Scene(root));
+                 stage.initModality(Modality.NONE);
+                 stage.show();
+             } catch (IOException e) {
+                    e.printStackTrace();
+             }
+         });
+
         // search
         this.input_search_mail.setOnAction(event -> {
             System.out.println(((TextField) event.getSource()).getText());
         });
 
+        contextMenu.getItems().add(moveToMenu);
         this.mail_list.setCellFactory(lv -> new ListCell<>() {
+
+            {
+                setOnContextMenuRequested(event -> {
+                    if (isEmpty() || getItem() == null) return;
+
+                    mail_list.getSelectionModel().select(getIndex());
+
+                    moveToMenu.getItems().clear();
+
+                    List<FolderEntity> contextMenuFolders =
+                            folderService.GetAllFolders(authService.getCurrentUser());
+
+                    for (FolderEntity folder : contextMenuFolders) {
+                        MenuItem item = new MenuItem(folder.getTitle());
+
+                        item.setOnAction(e -> {
+                            Mail selected = getItem();
+                            mailService.MoveToFolder(selected.id(), authService.getCurrentUser(), folder);
+                            System.out.println("Move mail '" + selected.subject() + "' to folder '" + folder.getTitle() + "'");
+                        });
+
+                        moveToMenu.getItems().add(item);
+                    }
+
+                    contextMenu.show(this, event.getScreenX(), event.getScreenY());
+                });
+            }
+
             @Override
             protected void updateItem(Mail item, boolean empty) {
                 super.updateItem(item, empty);
+
                 if (empty || item == null) {
                     setGraphic(null);
                     return;
                 }
+
                 try {
                     int index = getIndex();
                     int lastIndex = mail_list.getItems().size() - 1;
 
-                    if (index == lastIndex) {
-                        setGraphic(buttonLoadMoreMails);
-                    } else {
-                        FXMLLoader loader = new FXMLLoader(Main.class.getResource("mail_item.fxml"));
-                        Parent cellRoot = loader.load();
-                        MailItemController controller = loader.getController();
-                        controller.setData(item);
-                        setGraphic(cellRoot);
-                    }
+                    FXMLLoader loader = new FXMLLoader(
+                            Main.class.getResource("mail_item.fxml")
+                    );
+                    Parent cellRoot = loader.load();
+
+                    MailItemController controller = loader.getController();
+                    controller.setData(item);
+
+                    setGraphic(cellRoot);
                 } catch (IOException | MessagingException e) {
                     throw new RuntimeException(e);
                 }
@@ -312,7 +380,7 @@ public class MainController {
         });
 
         // button "more..."
-        buttonLoadMoreMails.setOnAction(e -> {
+        button_more.setOnAction(e -> {
             // find the oldest mail UID
             Mail oldest = findOldestMail(mails);
             if (oldest != null) {
@@ -389,6 +457,17 @@ public class MainController {
                     containerState.set(ContainerState.READ);
                 }
             });
+        }
+
+        private void onChangeFolder(String folder_name) {
+            this.text_folder.setText(folder_name);
+
+            List<Mail> mails = this.mailService.ListFromDatabaseByFolder(
+                        this.authService.getCurrentUser(),
+                        this.folderService.GetCurrentFolderEntity(this.authService.getCurrentUser())
+            );
+            this.displayedMails.clear();
+            updateMailsList(FXCollections.observableList(mails), false);
         }
 
         private Mail findNewestMail(List<Mail> mails) {

@@ -17,6 +17,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import org.mailbird.Core.Services.AuthService;
+import org.mailbird.Core.Services.FolderService;
 import org.mailbird.Core.Services.MailService;
 import org.mailbird.Core.domain.model.User;
 import org.mailbird.Core.util.Popup;
@@ -60,12 +61,14 @@ public class LoginController {
 
     private final AuthService authService;
     private final MailService mailService;
+    private final FolderService folderService;
 
     private String userSelectedEmail = "";
 
-    public LoginController(AuthService authService, MailService mailService) {
+    public LoginController(AuthService authService, MailService mailService, FolderService folderService) {
         this.authService = authService;
         this.mailService = mailService;
+        this.folderService = folderService;
     }
 
     @FXML
@@ -148,11 +151,14 @@ public class LoginController {
                 ).Show();
             }
 
+            // create default folder
+            folderService.CreateDefaultFolder(authService.getCurrentUser());
+
             // move to the main controller
             try {
                 Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
                 FXMLLoader loader = new FXMLLoader(Main.class.getResource("main.fxml"));
-                loader.setControllerFactory(param -> new MainController(authService, mailService));
+                loader.setControllerFactory(param -> new MainController(authService, mailService, folderService));
                 Parent parent = loader.load();
 
                 Scene scene = new Scene(parent);

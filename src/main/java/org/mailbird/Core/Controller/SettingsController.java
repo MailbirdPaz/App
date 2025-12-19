@@ -10,6 +10,7 @@ import javafx.scene.control.Button;
 import javafx.stage.Stage;
 import lombok.Setter;
 import org.mailbird.Core.Services.AuthService;
+import org.mailbird.Core.Services.FolderService;
 import org.mailbird.Core.Services.MailService;
 import org.mailbird.Main;
 
@@ -28,10 +29,12 @@ public class SettingsController {
 
     private AuthService authService;
     private MailService mailService;
+    private FolderService folderService;
 
-    public SettingsController(AuthService authService, MailService mailService) {
+    public SettingsController(AuthService authService, MailService mailService, FolderService folderService) {
         this.authService = authService;
         this.mailService = mailService;
+        this.folderService = folderService;
     }
 
     @FXML
@@ -51,16 +54,7 @@ public class SettingsController {
             // move to the login screen
             try {
                 FXMLLoader loader = new FXMLLoader(Main.class.getResource("login.fxml"));
-                loader.setControllerFactory(type -> {
-                    if (type == LoginController.class) {
-                        return new LoginController(authService, mailService);
-                    }
-                    try {
-                        return type.getDeclaredConstructor().newInstance();
-                    } catch (Exception exception) {
-                        throw new RuntimeException(exception);
-                    }
-                });
+                loader.setControllerFactory(type -> new LoginController(authService, mailService, folderService));
                 Parent parent = loader.load();
                 Scene scene = new Scene(parent);
                 Main.mainStage.setScene(scene);

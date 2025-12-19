@@ -8,8 +8,7 @@ import lombok.Setter;
 import org.mailbird.Core.domain.model.Mail;
 
 import java.time.OffsetDateTime;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -141,9 +140,14 @@ public class MailEntity {
     @JoinColumn(name = "owner_user_id", nullable = false)
     private UserEntity owner;
 
-//    @ManyToMany(mappedBy = "mails")
-//    private List<FolderEntity> folders;
-//
-//    @ManyToMany(mappedBy = "mails")
-//    private List<TagEntity> tags;
+    @Getter
+    @Setter
+    @ManyToMany
+    @JoinTable(
+            name = "mail_folders",
+            joinColumns = @JoinColumn(name = "mail_id"),
+            inverseJoinColumns = @JoinColumn(name = "folder_id")
+    )
+    private List<FolderEntity> folders = new ArrayList<>();
+
 }

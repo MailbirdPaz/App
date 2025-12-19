@@ -21,7 +21,6 @@
         <!-- Entities -->
         <mapping class="org.mailbird.Core.domain.entity.UserEntity"/>
         <mapping class="org.mailbird.Core.domain.entity.FolderEntity"/>
-        <mapping class="org.mailbird.Core.domain.entity.TagEntity"/>
         <mapping class="org.mailbird.Core.domain.entity.MailEntity"/>
 
     </session-factory>
